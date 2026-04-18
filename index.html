@@ -148,7 +148,7 @@
         #business-card-layer.visible {
             visibility: visible;
             pointer-events: auto;
-            background: rgba(0, 255, 136, 0.6); /* Semi-transparent so cracked train is visible */
+            background: rgba(0, 255, 136, 1); /* Solid green background once the screen falls away */
         }
 
         .card-container {
@@ -211,6 +211,21 @@
             stroke-dashoffset: 113.1;
             transition: stroke-dashoffset 0.1s linear;
         }
+
+        /* Screen Shards falling physics */
+        .screen-shard {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 2500;
+            transition: transform 1.2s cubic-bezier(0.5, 0.0, 0.2, 1), opacity 1s ease 0.2s;
+            pointer-events: none;
+        }
+
+        canvas { display: block; }
 
     </style>
 </head>
@@ -291,7 +306,12 @@
         }
 
         function init() {
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: true, 
+                powerPreference: "high-performance",
+                preserveDrawingBuffer: true 
+            });
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -344,8 +364,10 @@
                 new THREE.Vector3(60, 2, -120),
                 new THREE.Vector3(25, 2, -95),
                 new THREE.Vector3(8, 2, -75),
-                new THREE.Vector3(0, 2, -60),
-                new THREE.Vector3(0, 2, 20),
+                new THREE.Vector3(0, 2, -50),
+                new THREE.Vector3(0, 2, -20), // Added collinear point
+                new THREE.Vector3(0, 2, 10),  // Added collinear point
+                new THREE.Vector3(0, 2, 50),
                 new THREE.Vector3(0, 2, 100)
             ]);
             curve.curveType = 'centripetal'; 
@@ -380,30 +402,72 @@
             const crack = document.getElementById('glass-crack');
             const cardLayer = document.getElementById('business-card-layer');
 
-            // 1. Violent Impact
+            // Force a final render to ensure we have the exact frame for the picture
+            renderer.render(scene, camera);
+
+            // 1. Violent Impact: Glass crack instantly appears
             flash.style.transition = 'opacity 0.05s ease';
             flash.style.opacity = '1';
             wrapper.classList.add('shake');
+            crack.classList.add('active');
             document.getElementById('skip-guide').classList.add('hidden');
 
-            // Force a final render to ensure the train's face is frozen
-            renderer.render(scene, camera);
-
-            // 2. Resolve Impact
+            // 2. Screen falls apart (Shatter sequence)
             setTimeout(() => {
-                flash.style.transition = 'opacity 1.5s ease-out';
+                flash.style.transition = 'opacity 1s ease-out';
                 flash.style.opacity = '0';
                 
-                // Camera Lens breaks & blurs out (crack appears instantly now)
-                crack.classList.add('active');
-                wrapper.classList.add('blurred');
+                // Capture the exact 3D scene frame as an image
+                const imgData = renderer.domElement.toDataURL('image/webp', 0.9);
                 
-                // Show card
+                // Instantly hide the real 3D canvas and static crack SVG
+                wrapper.style.display = 'none';
+                crack.style.display = 'none';
+                
+                // Reveal the card waiting safely underneath
                 cardLayer.classList.add('visible');
-                
-                // Disabled renderer.clear() so the frozen train face stays on screen indefinitely behind the UI
 
-            }, 50); // Flash duration
+                // Defines 12 puzzle pieces that perfectly tile the screen
+                const polys = [
+                    '0 0, 25% 0, 50% 50%, 0 25%',
+                    '25% 0, 50% 0, 50% 50%',
+                    '50% 0, 75% 0, 50% 50%',
+                    '75% 0, 100% 0, 100% 25%, 50% 50%',
+                    '100% 25%, 100% 50%, 50% 50%',
+                    '100% 50%, 100% 75%, 50% 50%',
+                    '100% 75%, 100% 100%, 75% 100%, 50% 50%',
+                    '75% 100%, 50% 100%, 50% 50%',
+                    '50% 100%, 25% 100%, 50% 50%',
+                    '25% 100%, 0 100%, 0 75%, 50% 50%',
+                    '0 75%, 0 50%, 50% 50%',
+                    '0 50%, 0 25%, 50% 50%'
+                ];
+                
+                // Generate and animate the falling shards
+                polys.forEach((p, i) => {
+                    const shard = document.createElement('div');
+                    shard.className = 'screen-shard';
+                    shard.style.backgroundImage = `url(${imgData})`;
+                    shard.style.clipPath = `polygon(${p})`;
+                    document.body.appendChild(shard);
+                    
+                    // Delay slightly to ensure render, then blast them outward and down
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            const angle = (i / 12) * Math.PI * 2;
+                            const tx = Math.cos(angle) * (300 + Math.random() * 400); // Push outward based on angle
+                            const ty = 800 + Math.random() * 500; // Gravity heavy
+                            const rot = (Math.random() - 0.5) * 180; // Tumble
+                            shard.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
+                            shard.style.opacity = '0';
+                        });
+                    });
+                });
+
+                // Clear WebGL resources to save battery after shards fall
+                setTimeout(() => { renderer.dispose(); }, 2000); 
+
+            }, 500); // Give the user exactly 0.5 seconds to register the "crack" before the screen completely caves in
         }
 
         function animate() {
@@ -425,13 +489,23 @@
                 const pos = curve.getPointAt(easedT);
                 train.position.copy(pos);
 
-                // Precise impact threshold (nose overlaps perfectly)
-                if (pos.z > 16 && !isStopped) triggerCard();
+                // Precise impact threshold: Stop at Z=2 so the train's front nose aligns with the camera (Z=18)
+                if (pos.z > 2 && !isStopped) {
+                    // Force exact stopping position and perfectly straight alignment
+                    train.position.set(0, 2, 2);
+                    train.lookAt(0, 2, 100); 
+                    triggerCard();
+                    return; 
+                }
 
-                const nextT = Math.min(easedT + 0.002, 0.999);
-                train.lookAt(curve.getPointAt(nextT));
+                if (!isStopped) {
+                    const nextT = Math.min(easedT + 0.002, 0.999);
+                    train.lookAt(curve.getPointAt(nextT));
+                }
             }
-            renderer.render(scene, camera);
+            if (!isStopped) {
+                renderer.render(scene, camera);
+            }
         }
     </script>
 </body>
