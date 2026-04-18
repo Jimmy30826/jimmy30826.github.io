@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jimmy - Engineering</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600&display=swap');
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #020202; 
+            font-family: 'Outfit', sans-serif; 
+            color: #fff;
+            user-select: none;
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #111 0%, #020202 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1.2s ease;
+        }
+
+        #loading-screen.hidden { opacity: 0; pointer-events: none; }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-top: 2px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #progress-bar {
+            width: 0%;
+            height: 1px;
+            background: #00ff88;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        /* 3D Canvas Canvas */
+        #canvas-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: filter 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* For slow blur out */
+        }
+
+        #canvas-wrapper.blurred {
+            filter: blur(10px) brightness(0.5); /* Lighter blur so train front is visible */
+        }
+
+        /* Camera Shake Animation */
+        .shake {
+            animation: explodeShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes explodeShake {
+            0% { transform: translate(0, 0) scale(1.0); }
+            10% { transform: translate(-30px, -30px) scale(1.05); }
+            20% { transform: translate(30px, 30px) scale(1.02); }
+            30% { transform: translate(-30px, 20px) scale(1.05); }
+            40% { transform: translate(20px, -20px) scale(1.01); }
+            50% { transform: translate(-10px, 10px) scale(1.03); }
+            60% { transform: translate(10px, -10px) scale(1.0); }
+            100% { transform: translate(0, 0) scale(1.0); }
+        }
+
+        /* Glass Fracture Overlay */
+        #glass-crack {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 150vw;
+            height: 150vh;
+            transform: translate(-50%, -50%) scale(1); /* No scale animation */
+            pointer-events: none;
+            z-index: 1800;
+            opacity: 0;
+            background-image: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
+            /* NO TRANSITION: Instant pop */
+        }
+
+        #glass-crack.active {
+            opacity: 1;
+        }
+
+        /* SVG lines drawn on the backdrop */
+        .crack-line {
+            stroke: rgba(255, 255, 255, 0.8);
+            stroke-width: 2;
+            fill: none;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        /* Impact Flash */
+        #impact-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            z-index: 3000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.05s ease;
+        }
+        
+        #impact-flash.fade-out {
+            transition: opacity 1.5s ease-out;
+            opacity: 0;
+        }
+
+        /* Professional Minimalist Card */
+        #business-card-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            pointer-events: none;
+            visibility: hidden;
+            background: rgba(0, 255, 136, 0); 
+            transition: background 1.5s ease 0.5s; /* Slow dissolve to green */
+        }
+
+        #business-card-layer.visible {
+            visibility: visible;
+            pointer-events: auto;
+            background: rgba(0, 255, 136, 0.6); /* Semi-transparent so cracked train is visible */
+        }
+
+        .card-container {
+            opacity: 0;
+            transform: scale(0.8) translateY(30px);
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s; /* Delays revealing the card until blur sets in */
+        }
+
+        #business-card-layer.visible .card-container {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .professional-card {
+            width: 360px;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .profile-pic {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            background: #f0f0f0;
+        }
+
+        .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+
+        .info-text h1 { font-size: 32px; margin: 0; color: #000; text-align: center; }
+        .info-text p { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 4px; margin: 8px 0 25px 0; text-align: center; }
+        .card-footer { width: 100%; border-top: 1px solid #f0f0f0; padding-top: 20px; display: flex; justify-content: space-between; }
+        .footer-item { font-size: 9px; color: #ccc; letter-spacing: 2px; }
+
+        /* Skip Guide */
+        #skip-guide {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 1500;
+            transition: opacity 0.5s ease;
+        }
+        .skip-text { font-size: 10px; letter-spacing: 3px; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; }
+        .progress-ring { width: 40px; height: 40px; transform: rotate(-90deg); }
+        .progress-ring circle { fill: none; stroke-width: 2; stroke-linecap: round; }
+        .ring-bg { stroke: rgba(255, 255, 255, 0.1); }
+        .ring-fill {
+            stroke: #00ff88;
+            stroke-dasharray: 113.1;
+            stroke-dashoffset: 113.1;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <div class="progress-wrapper" style="width: 200px;">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- 3D Scene Wrapper (for blur & shake) -->
+    <div id="canvas-wrapper"></div>
+
+    <!-- Impact & Shatter Vector Overlay -->
+    <div id="glass-crack">
+        <svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
+            <!-- Center Spiderweb Cracks -->
+            <path class="crack-line" d="M500,500 L100,100 M500,500 L500,0 M500,500 L900,100 M500,500 L1000,500 M500,500 L800,900 M500,500 L200,800 M500,500 L0,400" />
+            <path class="crack-line" d="M400,450 L300,200 L450,150 L550,100 L650,250 M450,550 L300,700 L500,800 L700,750 L600,600" />
+            <path class="crack-line" d="M450,450 L350,300 L500,250 L600,350 M400,500 L300,600 L500,650 L600,550 L550,450" />
+            <path class="crack-line" d="M480,480 L420,420 M520,480 L580,420 M480,520 L450,580 M520,520 L550,580" />
+        </svg>
+    </div>
+
+    <div id="impact-flash"></div>
+
+    <div id="skip-guide">
+        <span class="skip-text">Hold SPACE to skip</span>
+        <svg class="progress-ring">
+            <circle class="ring-bg" cx="20" cy="20" r="18"/>
+            <circle class="ring-fill" cx="20" cy="20" r="18" id="skip-progress"/>
+        </svg>
+    </div>
+
+    <!-- Final Dissolve Business Card -->
+    <div id="business-card-layer">
+        <div class="card-container">
+            <div class="professional-card">
+                <div class="profile-pic">
+                    <img src="img/e233tok.webp" alt="Jimmy">
+                </div>
+                <div class="info-text">
+                    <h1>Jimmy</h1>
+                    <p>Railway Systems Engineer</p>
+                </div>
+                <div class="card-footer">
+                    <span class="footer-item">TOKAIDO LINE</span>
+                    <span class="footer-item">CORE HUB</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
+
+        let scene, camera, renderer, train, curve;
+        let startTime, isStopped = false;
+        const totalDuration = 15000; // Realistic weight
+
+        let spacePressed = false, spaceHoldStart = 0;
+        const skipHoldRequired = 2000;
+
+        init();
+
+        function easeOutQuart(x) {
+            return 1 - Math.pow(1 - x, 4);
+        }
+
+        function init() {
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x020202, 100, 1000); 
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000);
+            camera.position.set(0, 2, 18);
+            camera.lookAt(0, 2, -100); 
+
+            // Grid
+            function createGridTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128; canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 5; 
+                ctx.strokeRect(0, 0, 128, 128);
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(2000, 2000); 
+                return tex;
+            }
+            const grid = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000), new THREE.MeshBasicMaterial({ map: createGridTexture(), transparent: true, opacity: 0.8 }));
+            grid.rotation.x = -Math.PI / 2;
+            scene.add(grid);
+
+            // "E233"
+            function createNeonText(text) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20;
+                ctx.fillStyle = '#00ff88'; ctx.font = 'bold 120px Outfit';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(text, 256, 128);
+                return new THREE.CanvasTexture(canvas);
+            }
+            const textMesh = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshBasicMaterial({ map: createNeonText('E233'), transparent: true, side: THREE.DoubleSide }));
+            textMesh.position.set(0, 35, -400); 
+            scene.add(textMesh);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 3.5));
+            const dl = new THREE.DirectionalLight(0xffffff, 2);
+            dl.position.set(10, 20, 10);
+            scene.add(dl);
+
+            curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(120, 2, -140),
+                new THREE.Vector3(60, 2, -120),
+                new THREE.Vector3(25, 2, -95),
+                new THREE.Vector3(8, 2, -75),
+                new THREE.Vector3(0, 2, -60),
+                new THREE.Vector3(0, 2, 20),
+                new THREE.Vector3(0, 2, 100)
+            ]);
+            curve.curveType = 'centripetal'; 
+
+            const loader = new ColladaLoader();
+            const progressBar = document.getElementById('progress-bar');
+            loader.load('./img/★E233東海道線/model.dae', (collada) => {
+                const model = collada.scene, box = new THREE.Box3().setFromObject(model), center = box.getCenter(new THREE.Vector3());
+                train = new THREE.Group();
+                train.add(model);
+                model.position.set(-center.x, -center.y, -center.z);
+                model.rotation.x = -Math.PI / 2;
+                train.scale.set(0.35, 0.35, 0.35);
+                model.traverse(node => { if (node.isMesh && node.material) Array.isArray(node.material) ? node.material.forEach(m => m.side = THREE.DoubleSide) : node.material.side = THREE.DoubleSide; });
+                scene.add(train);
+                setTimeout(() => { document.getElementById('loading-screen').classList.add('hidden'); startTime = performance.now(); animate(); }, 400);
+            }, (xhr) => { if (xhr.lengthComputable) progressBar.style.width = (Math.round((xhr.loaded / xhr.total) * 100)) + '%'; });
+
+            window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !spacePressed && !isStopped) { spacePressed = true; spaceHoldStart = performance.now(); } });
+            window.addEventListener('keyup', (e) => { if (e.code === 'Space') { spacePressed = false; document.getElementById('skip-progress').style.strokeDashoffset = '113.1'; } });
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+
+        function triggerCard() {
+            if (isStopped) return;
+            isStopped = true;
+
+            const wrapper = document.getElementById('canvas-wrapper');
+            const flash = document.getElementById('impact-flash');
+            const crack = document.getElementById('glass-crack');
+            const cardLayer = document.getElementById('business-card-layer');
+
+            // 1. Violent Impact
+            flash.style.transition = 'opacity 0.05s ease';
+            flash.style.opacity = '1';
+            wrapper.classList.add('shake');
+            document.getElementById('skip-guide').classList.add('hidden');
+
+            // Force a final render to ensure the train's face is frozen
+            renderer.render(scene, camera);
+
+            // 2. Resolve Impact
+            setTimeout(() => {
+                flash.style.transition = 'opacity 1.5s ease-out';
+                flash.style.opacity = '0';
+                
+                // Camera Lens breaks & blurs out (crack appears instantly now)
+                crack.classList.add('active');
+                wrapper.classList.add('blurred');
+                
+                // Show card
+                cardLayer.classList.add('visible');
+                
+                // Disabled renderer.clear() so the frozen train face stays on screen indefinitely behind the UI
+
+            }, 50); // Flash duration
+        }
+
+        function animate() {
+            if (isStopped) return;
+            requestAnimationFrame(animate);
+
+            if (spacePressed) {
+                const held = performance.now() - spaceHoldStart;
+                const ratio = Math.min(held / skipHoldRequired, 1);
+                document.getElementById('skip-progress').style.strokeDashoffset = (113.1 * (1 - ratio)).toString();
+                if (held >= skipHoldRequired) triggerCard();
+            }
+
+            if (train && curve) {
+                const elapsed = performance.now() - startTime;
+                const rawT = (elapsed % totalDuration) / totalDuration;
+                const easedT = easeOutQuart(rawT);
+
+                const pos = curve.getPointAt(easedT);
+                train.position.copy(pos);
+
+                // Precise impact threshold (nose overlaps perfectly)
+                if (pos.z > 16 && !isStopped) triggerCard();
+
+                const nextT = Math.min(easedT + 0.002, 0.999);
+                train.lookAt(curve.getPointAt(nextT));
+            }
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
