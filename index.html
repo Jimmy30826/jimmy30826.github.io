@@ -138,6 +138,90 @@
             /* NO TRANSITION: Instant pop */
         }
 
+        /* Portfolio Accordion */
+        .portfolio-section {
+            width: 100%;
+            margin-top: 15px;
+            border-top: 1px dashed #eaeaea;
+            padding-top: 15px;
+        }
+
+        .portfolio-toggle {
+            font-size: 10px;
+            color: #888;
+            letter-spacing: 1px;
+            text-align: center;
+            cursor: pointer;
+            transition: color 0.3s;
+            user-select: none;
+            font-weight: 600;
+        }
+
+        .portfolio-toggle:hover {
+            color: #00ff88;
+        }
+
+        .portfolio-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0, 1, 0, 1), opacity 0.3s ease, margin 0.3s;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 0;
+        }
+
+        .portfolio-content.open {
+            max-height: 500px;
+            opacity: 1;
+            margin-top: 15px;
+            transition: max-height 0.8s ease-in-out, opacity 0.4s ease 0.1s, margin 0.3s;
+        }
+
+        .pf-text {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.6;
+            text-align: justify;
+        }
+
+        .pf-text strong {
+            color: #111;
+        }
+
+        .pf-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .pf-btn {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #444;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .pf-btn.primary {
+            background: #00ff88;
+            color: #fff;
+            border-color: #00ff88;
+        }
+
+        .pf-btn:hover {
+            background: #00ff88;
+            color: #fff;
+            border-color: #00ff88;
+            box-shadow: 0 4px 10px rgba(0, 255, 136, 0.3);
+        }
+
         #glass-crack.active {
             opacity: 1;
         }
@@ -423,7 +507,7 @@
                 </div>
                 <div class="info-text">
                     <h1>Jimmy</h1>
-                    <p>Railway Systems Engineer</p>
+                    <p>Railway Lover</p>
                 </div>
                 <div class="card-footer">
                     <span class="footer-item">TOKAIDO LINE</span>
@@ -432,7 +516,26 @@
                         <div class="dropdown-menu">
                             <a href="/photofolio - dlab/mygame/main.html">역명 퀴즈 게임</a>
                             <a href="/photofolio - dlab/w1/haligali.html">할리갈리</a>
-                            <a href="#">기타 (준비중)</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="portfolio-section">
+                    <div class="portfolio-toggle"
+                        onclick="this.classList.toggle('active'); document.getElementById('pf-content').classList.toggle('open');">
+                        디랩 DC-VIBE-AI ▼
+                    </div>
+                    <div class="portfolio-content" id="pf-content">
+                        <p class="pf-text">
+                            <strong>Canvas</strong>와 <strong>나노 바나나</strong>를 활용하여 전체 기획과 뼈대를 설계하고, <strong>Notebook
+                                LM</strong>과 <strong>Deep Research</strong>를 통해 구현에 필요한 심층 코딩 지식과 레퍼런스를 수집했습니다.<br><br>
+                            이러한 과정을 거쳐 최종적으로는 <strong>Antigravity</strong> AI를 활용하여 상단의 <strong>할리갈리</strong>와 <strong>역
+                                퀴즈</strong> 게임을 완성하였습니다.
+                        </p>
+                        <div class="pf-links">
+                            <a href="https://notebooklm.google.com/notebook/8fd9e878-3f39-40ea-880c-7077d69a6762"
+                                class="pf-btn">Notebook LM 결과물</a>
+                            <a href="https://gemini.google.com/share/e414f9311bd9" class="pf-btn">Deep Research 보고서</a>
                         </div>
                     </div>
                 </div>
@@ -460,11 +563,11 @@
         const skipHoldRequired = 2000;
 
         let skipIntro = false;
-        
+
         // Use sessionStorage which is bulletproof across local files and servers
         if (sessionStorage.getItem('introCompleted') === 'true') {
             skipIntro = true;
-            
+
             // Allow manual F5 / Reloads to replay the animation
             const nav = performance.getEntriesByType("navigation")[0];
             if ((nav && nav.type === "reload") || (performance.navigation && performance.navigation.type === 1)) {
