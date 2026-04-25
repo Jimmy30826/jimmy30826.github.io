@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,11 +8,11 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600&display=swap');
 
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background: #020202; 
-            font-family: 'Outfit', sans-serif; 
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #020202;
+            font-family: 'Outfit', sans-serif;
             color: #fff;
             user-select: none;
         }
@@ -31,7 +32,10 @@
             transition: opacity 1.2s ease;
         }
 
-        #loading-screen.hidden { opacity: 0; pointer-events: none; }
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
 
         .spinner {
             width: 50px;
@@ -42,7 +46,16 @@
             animation: spin 0.8s linear infinite;
             margin-bottom: 20px;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
 
         #progress-bar {
             width: 0%;
@@ -59,27 +72,52 @@
             left: 0;
             width: 100%;
             height: 100%;
-            transition: filter 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* For slow blur out */
+            transition: filter 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            /* For slow blur out */
         }
 
         #canvas-wrapper.blurred {
-            filter: blur(10px) brightness(0.5); /* Lighter blur so train front is visible */
+            filter: blur(10px) brightness(0.5);
+            /* Lighter blur so train front is visible */
         }
 
         /* Camera Shake Animation */
         .shake {
-            animation: explodeShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            animation: explodeShake 0.5s cubic-bezier(.36, .07, .19, .97) both;
         }
 
         @keyframes explodeShake {
-            0% { transform: translate(0, 0) scale(1.0); }
-            10% { transform: translate(-30px, -30px) scale(1.05); }
-            20% { transform: translate(30px, 30px) scale(1.02); }
-            30% { transform: translate(-30px, 20px) scale(1.05); }
-            40% { transform: translate(20px, -20px) scale(1.01); }
-            50% { transform: translate(-10px, 10px) scale(1.03); }
-            60% { transform: translate(10px, -10px) scale(1.0); }
-            100% { transform: translate(0, 0) scale(1.0); }
+            0% {
+                transform: translate(0, 0) scale(1.0);
+            }
+
+            10% {
+                transform: translate(-30px, -30px) scale(1.05);
+            }
+
+            20% {
+                transform: translate(30px, 30px) scale(1.02);
+            }
+
+            30% {
+                transform: translate(-30px, 20px) scale(1.05);
+            }
+
+            40% {
+                transform: translate(20px, -20px) scale(1.01);
+            }
+
+            50% {
+                transform: translate(-10px, 10px) scale(1.03);
+            }
+
+            60% {
+                transform: translate(10px, -10px) scale(1.0);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1.0);
+            }
         }
 
         /* Glass Fracture Overlay */
@@ -89,11 +127,12 @@
             left: 50%;
             width: 150vw;
             height: 150vh;
-            transform: translate(-50%, -50%) scale(1); /* No scale animation */
+            transform: translate(-50%, -50%) scale(1);
+            /* No scale animation */
             pointer-events: none;
             z-index: 1800;
             opacity: 0;
-            background-image: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
+            background-image: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.8) 100%);
             /* NO TRANSITION: Instant pop */
         }
 
@@ -106,7 +145,7 @@
             stroke: rgba(255, 255, 255, 0.8);
             stroke-width: 2;
             fill: none;
-            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
         }
 
         /* Impact Flash */
@@ -122,7 +161,7 @@
             pointer-events: none;
             transition: opacity 0.05s ease;
         }
-        
+
         #impact-flash.fade-out {
             transition: opacity 1.5s ease-out;
             opacity: 0;
@@ -141,20 +180,23 @@
             z-index: 2000;
             pointer-events: none;
             visibility: hidden;
-            background: rgba(0, 255, 136, 0); 
-            transition: background 1.5s ease 0.5s; /* Slow dissolve to green */
+            background: rgba(0, 255, 136, 0);
+            transition: background 1.5s ease 0.5s;
+            /* Slow dissolve to green */
         }
 
         #business-card-layer.visible {
             visibility: visible;
             pointer-events: auto;
-            background: rgba(0, 255, 136, 1); /* Solid green background once the screen falls away */
+            background: rgba(0, 255, 136, 1);
+            /* Solid green background once the screen falls away */
         }
 
         .card-container {
             opacity: 0;
             transform: scale(0.8) translateY(30px);
-            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s; /* Delays revealing the card until blur sets in */
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s;
+            /* Delays revealing the card until blur sets in */
         }
 
         #business-card-layer.visible .card-container {
@@ -183,12 +225,41 @@
             background: #f0f0f0;
         }
 
-        .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-pic img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-        .info-text h1 { font-size: 32px; margin: 0; color: #000; text-align: center; }
-        .info-text p { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 4px; margin: 8px 0 25px 0; text-align: center; }
-        .card-footer { width: 100%; border-top: 1px solid #f0f0f0; padding-top: 20px; display: flex; justify-content: space-between; }
-        .footer-item { font-size: 9px; color: #ccc; letter-spacing: 2px; }
+        .info-text h1 {
+            font-size: 32px;
+            margin: 0;
+            color: #000;
+            text-align: center;
+        }
+
+        .info-text p {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin: 8px 0 25px 0;
+            text-align: center;
+        }
+
+        .card-footer {
+            width: 100%;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .footer-item {
+            font-size: 9px;
+            color: #ccc;
+            letter-spacing: 2px;
+        }
 
         /* Skip Guide */
         #skip-guide {
@@ -201,10 +272,30 @@
             z-index: 1500;
             transition: opacity 0.5s ease;
         }
-        .skip-text { font-size: 10px; letter-spacing: 3px; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; }
-        .progress-ring { width: 40px; height: 40px; transform: rotate(-90deg); }
-        .progress-ring circle { fill: none; stroke-width: 2; stroke-linecap: round; }
-        .ring-bg { stroke: rgba(255, 255, 255, 0.1); }
+
+        .skip-text {
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+        }
+
+        .progress-ring {
+            width: 40px;
+            height: 40px;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+
+        .ring-bg {
+            stroke: rgba(255, 255, 255, 0.1);
+        }
+
         .ring-fill {
             stroke: #00ff88;
             stroke-dasharray: 113.1;
@@ -215,8 +306,10 @@
         /* Screen Shards falling physics */
         .screen-shard {
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -225,10 +318,12 @@
             pointer-events: none;
         }
 
-        canvas { display: block; }
-
+        canvas {
+            display: block;
+        }
     </style>
 </head>
+
 <body>
     <div id="loading-screen">
         <div class="spinner"></div>
@@ -244,9 +339,12 @@
     <div id="glass-crack">
         <svg width="100%" height="100%" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
             <!-- Center Spiderweb Cracks -->
-            <path class="crack-line" d="M500,500 L100,100 M500,500 L500,0 M500,500 L900,100 M500,500 L1000,500 M500,500 L800,900 M500,500 L200,800 M500,500 L0,400" />
-            <path class="crack-line" d="M400,450 L300,200 L450,150 L550,100 L650,250 M450,550 L300,700 L500,800 L700,750 L600,600" />
-            <path class="crack-line" d="M450,450 L350,300 L500,250 L600,350 M400,500 L300,600 L500,650 L600,550 L550,450" />
+            <path class="crack-line"
+                d="M500,500 L100,100 M500,500 L500,0 M500,500 L900,100 M500,500 L1000,500 M500,500 L800,900 M500,500 L200,800 M500,500 L0,400" />
+            <path class="crack-line"
+                d="M400,450 L300,200 L450,150 L550,100 L650,250 M450,550 L300,700 L500,800 L700,750 L600,600" />
+            <path class="crack-line"
+                d="M450,450 L350,300 L500,250 L600,350 M400,500 L300,600 L500,650 L600,550 L550,450" />
             <path class="crack-line" d="M480,480 L420,420 M520,480 L580,420 M480,520 L450,580 M520,520 L550,580" />
         </svg>
     </div>
@@ -256,8 +354,8 @@
     <div id="skip-guide">
         <span class="skip-text">Hold SPACE to skip</span>
         <svg class="progress-ring">
-            <circle class="ring-bg" cx="20" cy="20" r="18"/>
-            <circle class="ring-fill" cx="20" cy="20" r="18" id="skip-progress"/>
+            <circle class="ring-bg" cx="20" cy="20" r="18" />
+            <circle class="ring-fill" cx="20" cy="20" r="18" id="skip-progress" />
         </svg>
     </div>
 
@@ -306,11 +404,11 @@
         }
 
         function init() {
-            renderer = new THREE.WebGLRenderer({ 
-                antialias: true, 
-                alpha: true, 
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true,
                 powerPreference: "high-performance",
-                preserveDrawingBuffer: true 
+                preserveDrawingBuffer: true
             });
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -318,21 +416,21 @@
             document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
 
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x020202, 100, 1000); 
+            scene.fog = new THREE.Fog(0x020202, 100, 1000);
             camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000);
             camera.position.set(0, 2, 18);
-            camera.lookAt(0, 2, -100); 
+            camera.lookAt(0, 2, -100);
 
             // Grid
             function createGridTexture() {
                 const canvas = document.createElement('canvas');
                 canvas.width = 128; canvas.height = 128;
                 const ctx = canvas.getContext('2d');
-                ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 5; 
+                ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 5;
                 ctx.strokeRect(0, 0, 128, 128);
                 const tex = new THREE.CanvasTexture(canvas);
                 tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-                tex.repeat.set(2000, 2000); 
+                tex.repeat.set(2000, 2000);
                 return tex;
             }
             const grid = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000), new THREE.MeshBasicMaterial({ map: createGridTexture(), transparent: true, opacity: 0.8 }));
@@ -351,7 +449,7 @@
                 return new THREE.CanvasTexture(canvas);
             }
             const textMesh = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshBasicMaterial({ map: createNeonText('E233'), transparent: true, side: THREE.DoubleSide }));
-            textMesh.position.set(0, 35, -400); 
+            textMesh.position.set(0, 35, -400);
             scene.add(textMesh);
 
             scene.add(new THREE.AmbientLight(0xffffff, 3.5));
@@ -370,7 +468,7 @@
                 new THREE.Vector3(0, 2, 50),
                 new THREE.Vector3(0, 2, 100)
             ]);
-            curve.curveType = 'centripetal'; 
+            curve.curveType = 'centripetal';
 
             const loader = new ColladaLoader();
             const progressBar = document.getElementById('progress-bar');
@@ -416,14 +514,14 @@
             setTimeout(() => {
                 flash.style.transition = 'opacity 1s ease-out';
                 flash.style.opacity = '0';
-                
+
                 // Capture the exact 3D scene frame as an image
                 const imgData = renderer.domElement.toDataURL('image/webp', 0.9);
-                
+
                 // Instantly hide the real 3D canvas and static crack SVG
                 wrapper.style.display = 'none';
                 crack.style.display = 'none';
-                
+
                 // Reveal the card waiting safely underneath
                 cardLayer.classList.add('visible');
 
@@ -442,7 +540,7 @@
                     '0 75%, 0 50%, 50% 50%',
                     '0 50%, 0 25%, 50% 50%'
                 ];
-                
+
                 // Generate and animate the falling shards
                 polys.forEach((p, i) => {
                     const shard = document.createElement('div');
@@ -450,7 +548,7 @@
                     shard.style.backgroundImage = `url(${imgData})`;
                     shard.style.clipPath = `polygon(${p})`;
                     document.body.appendChild(shard);
-                    
+
                     // Delay slightly to ensure render, then blast them outward and down
                     requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
@@ -465,7 +563,7 @@
                 });
 
                 // Clear WebGL resources to save battery after shards fall
-                setTimeout(() => { renderer.dispose(); }, 2000); 
+                setTimeout(() => { renderer.dispose(); }, 2000);
 
             }, 500); // Give the user exactly 0.5 seconds to register the "crack" before the screen completely caves in
         }
@@ -493,9 +591,9 @@
                 if (pos.z > 2 && !isStopped) {
                     // Force exact stopping position and perfectly straight alignment
                     train.position.set(0, 2, 2);
-                    train.lookAt(0, 2, 100); 
+                    train.lookAt(0, 2, 100);
                     triggerCard();
-                    return; 
+                    return;
                 }
 
                 if (!isStopped) {
@@ -509,4 +607,5 @@
         }
     </script>
 </body>
+
 </html>
