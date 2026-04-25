@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>駅クイズ！ - プレイ中</title>
+    <link rel="stylesheet" href="quiz.css">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <script>
+        // 전역 상태 선언
+        window.foundCount = 0;
+        window.totalStations = 0;
+
+        function showResult(success) {
+            const modal = document.getElementById('result-modal');
+            if (!modal) return;
+            
+            // 입력 잠금
+            const input = document.getElementById('station-input');
+            if (input) {
+                input.value = "";
+                input.disabled = true;
+                input.blur();
+            }
+
+            if (success) {
+                document.getElementById('result-title').innerText = "🎉 達成！";
+                document.getElementById('result-desc').innerHTML = `全 ${window.foundCount} 駅を見事見つけました！`;
+            } else {
+                document.getElementById('result-title').innerText = "ゲーム終了！";
+                document.getElementById('final-score').innerText = window.foundCount;
+                document.getElementById('final-total').innerText = window.totalStations;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        // 18차 최종: 커스텀 컨펌 모달 제어
+        function giveUp() {
+            const confirmModal = document.getElementById('confirm-modal');
+            if (confirmModal) confirmModal.classList.remove('hidden');
+        }
+
+        function closeConfirm(proceed) {
+            const confirmModal = document.getElementById('confirm-modal');
+            if (confirmModal) confirmModal.classList.add('hidden');
+            if (proceed) {
+                showResult(false);
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- 18차 추가: 커스텀 기권 확인 팝업 -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="confirm-box">
+            <h2 class="confirm-title">本当に諦めますか？</h2>
+            <div class="confirm-btns">
+                <button class="btn-yes" onclick="closeConfirm(true)">はい</button>
+                <button class="btn-no" onclick="closeConfirm(false)">いいえ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상단 입력바 -->
+    <div class="top-bar">
+        <button class="back-btn" onclick="window.location.href='main.html'">← もどる</button>
+        
+        <div class="input-wrapper">
+            <input type="text" id="station-input" autocomplete="off" placeholder="駅名を入力 (漢字・ひらがな)">
+        </div>
+
+        <div class="score-display">
+            <span id="score-text">0</span> / <span id="total-text">0</span> 駅
+            <button class="giveup-btn" id="giveup-trigger" onclick="giveUp()">諦める</button>
+        </div>
+    </div>
+
+    <!-- 메인 맵 컨테이너 -->
+    <div class="map-container">
+        <div id="svg-wrapper"></div>
+    </div>
+
+    <!-- 결과 모달 오버레이 -->
+    <div id="result-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2 id="result-title">ゲーム終了！</h2>
+            <p id="result-desc">あなたは <span id="final-score" class="highlight-score">0</span> / <span id="final-total">0</span> 駅を見つけました。</p>
+            <button class="action-btn" onclick="window.location.href='main.html'">メインメニューへ</button>
+        </div>
+    </div>
+
+    <!-- 데이터 파일 -->
+    <script src="stations.js"></script>
+    <!-- 게임 핵심 로직 -->
+    <script src="quiz.js"></script>
+</body>
+</html>

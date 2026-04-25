@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>駅クイズ！</title>
+    <!-- Google Fonts에서 픽셀 폰트 불러오기 -->
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        html {
+            height: 100%;
+            font-family: 'DotGothic16', sans-serif;
+            background-color: #000;
+            overflow: hidden;
+        }
+
+        /* 배경 컨테이너 */
+        .background-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('background.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: brightness(0.6);
+            z-index: 1;
+        }
+
+        /* 공통 UI 컨테이너 스타일 */
+        .screen-container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            color: #fff;
+            padding: 10px;
+            /* 약간 여백 축소 */
+        }
+
+        /* 타이틀 및 서브타이틀 */
+        .game-title {
+            font-size: 6rem;
+            color: #fff;
+            text-shadow:
+                4px 4px 0 #000,
+                -2px -2px 0 #28a745,
+                2px -2px 0 #28a745,
+                -2px 2px 0 #28a745,
+                2px 2px 0 #28a745;
+            margin-bottom: 2rem;
+            letter-spacing: 5px;
+            animation: pulse 2s infinite alternate;
+        }
+
+        .subtitle {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        /* 스크롤 영역 (버튼이 많을 때 대비) */
+        .scrollable-area {
+            overflow-y: auto;
+            max-height: 65vh;
+            padding: 10px 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .scrollable-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollable-area::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+        }
+
+        /* 시작 버튼 */
+        .start-btn {
+            font-family: inherit;
+            background-color: #28a745;
+            color: white;
+            font-size: 2.5rem;
+            padding: 15px 40px;
+            border: 4px solid #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #1e7e34, 0 6px 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+        }
+
+        .start-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 4px 0 #1e7e34;
+            background-color: #2fb94e;
+        }
+
+        .start-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #1e7e34;
+        }
+
+        /* 선택 화면 버튼 묶음 (2개) */
+        .button-group {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        /* 큰 선택 버튼 (모드 선택 등) */
+        .select-btn {
+            font-family: inherit;
+            background-color: #007bff;
+            color: white;
+            font-size: 2rem;
+            padding: 20px 40px;
+            border: 4px solid #fff;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #0056b3, 0 6px 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.1s ease;
+            width: 220px;
+        }
+
+        .select-btn.company {
+            background-color: #dc3545;
+            box-shadow: 0 6px 0 #a71d2a, 0 6px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .select-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 4px 0 #0056b3;
+            background-color: #1a88ff;
+        }
+
+        .select-btn.company:hover {
+            box-shadow: 0 4px 0 #a71d2a;
+            background-color: #e44d5d;
+        }
+
+        .select-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #0056b3;
+        }
+
+        .select-btn.company:active {
+            box-shadow: 0 0px 0 #a71d2a;
+        }
+
+        /* 뒤로가기 버튼 */
+        .back-btn {
+            font-family: inherit;
+            background-color: transparent;
+            color: white;
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            border: 2px solid #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 15px;
+        }
+
+        .back-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 지역별 버튼 그리드 */
+        .grid-region {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .region-btn {
+            font-family: inherit;
+            background-color: #343a40;
+            color: white;
+            font-size: 1.5rem;
+            padding: 15px;
+            border: 3px solid #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #1d2124;
+            transition: all 0.1s ease;
+        }
+
+        .region-btn.all {
+            grid-column: 1 / -1;
+            background-color: #ffc107;
+            border-color: #333;
+            color: #000;
+            box-shadow: 0 4px 0 #d39e00;
+        }
+
+        .region-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #1d2124;
+            background-color: #495057;
+        }
+
+        .region-btn.all:hover {
+            box-shadow: 0 2px 0 #d39e00;
+            background-color: #ffcd39;
+        }
+
+        .region-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 transparent;
+        }
+
+        /* 로고 버튼 그리드 (JR: 3칸 / 사철: 4칸) */
+        .grid-logo-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .grid-logo-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* 로고 버튼 (이미지 태그 사용) */
+        .logo-btn {
+            position: relative;
+            background-color: #ffffff;
+            border: 3px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #999;
+            transition: all 0.1s ease;
+            height: 80px;
+            padding: 10px;
+            /* 로고 상하좌우 마진 10px */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(0, 0, 0, 0.4);
+            font-size: 1.1rem;
+            font-family: inherit;
+            font-weight: bold;
+            overflow: hidden;
+        }
+
+        .logo-btn img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            /* 비율 찌그러짐 방지 */
+        }
+
+        .logo-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #999;
+            background-color: #f8f9fa;
+        }
+
+        .logo-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 transparent;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.05);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 4rem;
+            }
+
+            .subtitle {
+                font-size: 2rem;
+            }
+
+            .start-btn {
+                font-size: 2rem;
+                padding: 12px 30px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .grid-region,
+            .grid-logo-3,
+            .grid-logo-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="background-container"></div>
+
+    <!-- ===== 메인 화면 ===== -->
+    <div id="main-screen" class="screen-container">
+        <h1 class="game-title">駅クイズ！</h1>
+        <button class="start-btn" onclick="showScreen('selection-screen')">スタート</button>
+    </div>
+
+    <!-- ===== 첫번째 선택 화면 (지역별 / 사별) ===== -->
+    <div id="selection-screen" class="screen-container hidden">
+        <h2 class="subtitle">モード選択</h2>
+        <div class="button-group">
+            <button class="select-btn region" onclick="showScreen('region-screen')">地域別</button>
+            <button class="select-btn company" onclick="showScreen('company-screen')">社別</button>
+        </div>
+        <button class="back-btn" onclick="showScreen('main-screen')">← もどる</button>
+    </div>
+
+    <!-- ===== [지역별] 선택 화면 ===== -->
+    <div id="region-screen" class="screen-container hidden">
+        <h2 class="subtitle">地域選択</h2>
+        <div class="scrollable-area">
+            <div class="grid-region">
+                <button class="region-btn all" onclick="startGame('region', '全国')">全国</button>
+                <button class="region-btn" onclick="startGame('region', '北海道')">北海道</button>
+                <button class="region-btn" onclick="startGame('region', '東北')">東北</button>
+                <button class="region-btn" onclick="startGame('region', '関東')">関東</button>
+                <button class="region-btn" onclick="startGame('region', '甲信越')">甲信越</button>
+                <button class="region-btn" onclick="startGame('region', '関西')">関西</button>
+                <button class="region-btn" onclick="startGame('region', '山陽・山陰')">山陽・山陰</button>
+                <button class="region-btn" onclick="startGame('region', '四国')">四国</button>
+                <button class="region-btn" onclick="startGame('region', '九州')">九州</button>
+            </div>
+        </div>
+        <button class="back-btn" onclick="showScreen('selection-screen')">← もどる</button>
+    </div>
+
+    <!-- ===== [사별] 카테고리 화면 (JR / 대수사철) ===== -->
+    <div id="company-screen" class="screen-container hidden">
+        <h2 class="subtitle">会社群選択</h2>
+        <div class="button-group">
+            <button class="select-btn" onclick="showScreen('jr-screen')">JR</button>
+            <button class="select-btn company" onclick="showScreen('private-screen')">大手私鉄</button>
+        </div>
+        <button class="back-btn" onclick="showScreen('selection-screen')">← もどる</button>
+    </div>
+
+    <!-- ===== JR 선택 화면 ===== -->
+    <div id="jr-screen" class="screen-container hidden">
+        <h2 class="subtitle">JR</h2>
+        <div class="scrollable-area">
+            <div class="grid-logo-3">
+                <button class="logo-btn" onclick="startGame('company', 'JR北海道')"><img src="logo/jrhokkaido.webp"
+                        alt="JR北海道"></button>
+                <button class="logo-btn" onclick="startGame('company', 'JR東日本')"><img src="logo/jreast.webp"
+                        alt="JR東日本"></button>
+                <button class="logo-btn" onclick="startGame('company', 'JR東海')"><img src="logo/jrtokai.webp"
+                        alt="JR東海"></button>
+                <button class="logo-btn" onclick="startGame('company', 'JR西日本')"><img src="logo/jrwest.webp"
+                        alt="JR西日本"></button>
+                <button class="logo-btn" onclick="startGame('company', 'JR四国')"><img src="logo/jrshikoku.webp"
+                        alt="JR四国"></button>
+                <button class="logo-btn" onclick="startGame('company', 'JR九州')"><img src="logo/jrkyushyu.webp"
+                        alt="JR九州"></button>
+            </div>
+        </div>
+        <button class="back-btn" onclick="showScreen('company-screen')">← もどる</button>
+    </div>
+
+    <!-- ===== 주요사철 16개사 선택 화면 ===== -->
+    <div id="private-screen" class="screen-container hidden">
+        <h2 class="subtitle">大手私鉄</h2>
+        <div class="scrollable-area">
+            <div class="grid-logo-4">
+                <!-- 로고 이미지를 적용하려면 background-image: url('경로'); 를 사용하세요 -->
+                <!-- 관동 9사 -->
+                <button class="logo-btn" onclick="startGame('company', '東武')"><img src="logo/tobu.svg"
+                        alt="東武"></button>
+                <button class="logo-btn" onclick="startGame('company', '西武')"><img src="logo/seibu.svg"
+                        alt="西武"></button>
+                <button class="logo-btn" onclick="startGame('company', '京成')"><img src="logo/keisei.svg"
+                        alt="京成"></button>
+                <button class="logo-btn" onclick="startGame('company', '京王')"><img src="logo/keio.svg"
+                        alt="京王"></button>
+                <button class="logo-btn" onclick="startGame('company', '小田急')"><img src="logo/odakyu.svg"
+                        alt="小田急"></button>
+                <button class="logo-btn" onclick="startGame('company', '東急')"><img src="logo/tokyu.svg"
+                        alt="東急"></button>
+                <button class="logo-btn" onclick="startGame('company', '京急')"><img src="logo/keikyu.svg"
+                        alt="京急"></button>
+                <button class="logo-btn" onclick="startGame('company', '相鉄')"><img src="logo/sotetsu.svg"
+                        alt="相鉄"></button>
+                <button class="logo-btn" onclick="startGame('company', '東京メトロ')"><img src="logo/tokyometro.svg"
+                        alt="東京メトロ"></button>
+                <!-- 중부 1사 -->
+                <button class="logo-btn" onclick="startGame('company', '名鉄')"><img src="logo/metitetsu.svg"
+                        alt="名鉄"></button>
+                <!-- 관서 5사 -->
+                <button class="logo-btn" onclick="startGame('company', '近鉄')"><img src="logo/kintetsu.svg"
+                        alt="近鉄"></button>
+                <button class="logo-btn" onclick="startGame('company', '南海')"><img src="logo/nankai.svg"
+                        alt="南海"></button>
+                <button class="logo-btn" onclick="startGame('company', '京阪')"><img src="logo/keihan.svg"
+                        alt="京阪"></button>
+                <button class="logo-btn" onclick="startGame('company', '阪急')"><img src="logo/hankyu.svg"
+                        alt="阪急"></button>
+                <button class="logo-btn" onclick="startGame('company', '阪神')"><img src="logo/hanshin.svg"
+                        alt="阪神"></button>
+                <!-- 규슈 1사 -->
+                <button class="logo-btn" onclick="startGame('company', '西鉄')"><img src="logo/nishitetsu.svg"
+                        alt="西鉄"></button>
+            </div>
+        </div>
+        <button class="back-btn" onclick="showScreen('company-screen')">← もどる</button>
+    </div>
+
+    <script>
+        // 화면 전환 공통 함수
+        function showScreen(screenId) {
+            // 모든 화면 숨김
+            document.querySelectorAll('.screen-container').forEach(el => {
+                el.classList.add('hidden');
+            });
+            // 요청된 화면 표시
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        // 실제 퀴즈 시작 함수 (모드와 값을 넘겨줌)
+        function startGame(mode, value) {
+            console.log("선택됨: " + mode + " / " + value);
+            // 전국 모드일 때만 우선 접속
+            window.location.href = `quiz.html?mode=${mode}&val=${value}`;
+        }
+    </script>
+</body>
+
+</html>

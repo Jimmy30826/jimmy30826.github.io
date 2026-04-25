@@ -72,6 +72,8 @@
             left: 0;
             width: 100%;
             height: 100%;
+            z-index: 50;
+            /* Ensure this is ALWAYS above the business card before it breaks */
             transition: filter 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             /* For slow blur out */
         }
@@ -92,27 +94,27 @@
             }
 
             10% {
-                transform: translate(-30px, -30px) scale(1.05);
+                transform: translate(-80px, -50px) scale(1.15);
             }
 
             20% {
-                transform: translate(30px, 30px) scale(1.02);
+                transform: translate(60px, 70px) scale(1.1);
             }
 
             30% {
-                transform: translate(-30px, 20px) scale(1.05);
+                transform: translate(-70px, 40px) scale(1.12);
             }
 
             40% {
-                transform: translate(20px, -20px) scale(1.01);
+                transform: translate(50px, -60px) scale(1.05);
             }
 
             50% {
-                transform: translate(-10px, 10px) scale(1.03);
+                transform: translate(-40px, 30px) scale(1.08);
             }
 
             60% {
-                transform: translate(10px, -10px) scale(1.0);
+                transform: translate(30px, -20px) scale(1.02);
             }
 
             100% {
@@ -167,39 +169,25 @@
             opacity: 0;
         }
 
-        /* Professional Minimalist Card */
+        /* Professional Minimalist Card - Always Behind the Canvas */
         #business-card-layer {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            display: flex;
+            display: none;
+            /* Hidden until shatter to prevent peeking during camera shake */
             justify-content: center;
             align-items: center;
-            z-index: 2000;
-            pointer-events: none;
-            visibility: hidden;
-            background: rgba(0, 255, 136, 0);
-            transition: background 1.5s ease 0.5s;
-            /* Slow dissolve to green */
-        }
-
-        #business-card-layer.visible {
-            visibility: visible;
-            pointer-events: auto;
+            z-index: 10;
+            /* Put behind the 3D canvas */
             background: rgba(0, 255, 136, 1);
-            /* Solid green background once the screen falls away */
+            /* Solid green background */
         }
 
         .card-container {
-            opacity: 0;
-            transform: scale(0.8) translateY(30px);
-            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s;
-            /* Delays revealing the card until blur sets in */
-        }
-
-        #business-card-layer.visible .card-container {
+            /* Fully rendered from frame 1. No fade-in or pop-up animations. */
             opacity: 1;
             transform: scale(1) translateY(0);
         }
@@ -261,6 +249,72 @@
             letter-spacing: 2px;
         }
 
+        /* Dropdown Menu */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-toggle {
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .dropdown-toggle:hover {
+            color: #00ff88;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: #ffffff;
+            min-width: 130px;
+            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08);
+            border-radius: 6px;
+            padding: 8px 0;
+            margin-bottom: 12px;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            z-index: 100;
+        }
+
+        /* Small bottom arrow pointing to the text */
+        .dropdown-menu::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 15px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #ffffff transparent transparent transparent;
+        }
+
+        .dropdown:hover .dropdown-menu {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .dropdown-menu a {
+            display: block;
+            padding: 8px 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 11px;
+            letter-spacing: 1px;
+            transition: background 0.2s, color 0.2s;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .dropdown-menu a:hover {
+            background: #fafafa;
+            color: #00ff88;
+        }
+
         /* Skip Guide */
         #skip-guide {
             position: fixed;
@@ -303,7 +357,7 @@
             transition: stroke-dashoffset 0.1s linear;
         }
 
-        /* Screen Shards falling physics */
+        /* Screen Shards falling physics (Crumble/Gravity) */
         .screen-shard {
             position: fixed;
             top: 0;
@@ -314,7 +368,8 @@
             background-position: center;
             background-repeat: no-repeat;
             z-index: 2500;
-            transition: transform 1.2s cubic-bezier(0.5, 0.0, 0.2, 1), opacity 1s ease 0.2s;
+            transition: transform 1.5s cubic-bezier(0.55, 0.05, 0.68, 0.19), opacity 1s ease 0.5s;
+            will-change: transform, opacity;
             pointer-events: none;
         }
 
@@ -372,7 +427,14 @@
                 </div>
                 <div class="card-footer">
                     <span class="footer-item">TOKAIDO LINE</span>
-                    <span class="footer-item">CORE HUB</span>
+                    <div class="dropdown">
+                        <span class="footer-item dropdown-toggle">프로젝트 보기 ▼</span>
+                        <div class="dropdown-menu">
+                            <a href="/photofolio - dlab/mygame/main.html">역명 퀴즈 게임</a>
+                            <a href="/photofolio - dlab/w1/haligali.html">할리갈리</a>
+                            <a href="#">기타 (준비중)</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -397,7 +459,28 @@
         let spacePressed = false, spaceHoldStart = 0;
         const skipHoldRequired = 2000;
 
-        init();
+        let skipIntro = false;
+        
+        // Use sessionStorage which is bulletproof across local files and servers
+        if (sessionStorage.getItem('introCompleted') === 'true') {
+            skipIntro = true;
+            
+            // Allow manual F5 / Reloads to replay the animation
+            const nav = performance.getEntriesByType("navigation")[0];
+            if ((nav && nav.type === "reload") || (performance.navigation && performance.navigation.type === 1)) {
+                skipIntro = false;
+            }
+        }
+
+        if (skipIntro) {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('canvas-wrapper').style.display = 'none';
+            document.getElementById('glass-crack').style.display = 'none';
+            document.getElementById('skip-guide').style.display = 'none';
+            document.getElementById('business-card-layer').style.display = 'flex';
+        } else {
+            init();
+        }
 
         function easeOutQuart(x) {
             return 1 - Math.pow(1 - x, 4);
@@ -406,12 +489,12 @@
         function init() {
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
-                alpha: true,
                 powerPreference: "high-performance",
                 preserveDrawingBuffer: true
             });
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x020202, 1); // Solid background to hide the stationary card behind
             renderer.outputColorSpace = THREE.SRGBColorSpace;
             document.getElementById('canvas-wrapper').appendChild(renderer.domElement);
 
@@ -495,6 +578,9 @@
             if (isStopped) return;
             isStopped = true;
 
+            // Mark intro as fully completed in the session to skip it immediately next time
+            sessionStorage.setItem('introCompleted', 'true');
+
             const wrapper = document.getElementById('canvas-wrapper');
             const flash = document.getElementById('impact-flash');
             const crack = document.getElementById('glass-crack');
@@ -510,36 +596,47 @@
             crack.classList.add('active');
             document.getElementById('skip-guide').classList.add('hidden');
 
+            // Instantly start fading the flash so the screen is clear for the shatter
+            setTimeout(() => {
+                flash.style.transition = 'opacity 0.3s ease-out';
+                flash.style.opacity = '0';
+            }, 50);
+
             // 2. Screen falls apart (Shatter sequence)
             setTimeout(() => {
-                flash.style.transition = 'opacity 1s ease-out';
-                flash.style.opacity = '0';
 
                 // Capture the exact 3D scene frame as an image
                 const imgData = renderer.domElement.toDataURL('image/webp', 0.9);
 
-                // Instantly hide the real 3D canvas and static crack SVG
+                // Instantly hide the real 3D canvas
                 wrapper.style.display = 'none';
-                crack.style.display = 'none';
 
-                // Reveal the card waiting safely underneath
-                cardLayer.classList.add('visible');
+                // Allow the crack SVG to fall down gracefully alongside the shards
+                crack.style.transition = 'opacity 1s ease-out, transform 1.5s cubic-bezier(0.55, 0.05, 0.68, 0.19)';
+                crack.style.opacity = '0';
+                crack.style.transform = 'translate(-50%, 100vh)';
 
-                // Defines 12 puzzle pieces that perfectly tile the screen
-                const polys = [
-                    '0 0, 25% 0, 50% 50%, 0 25%',
-                    '25% 0, 50% 0, 50% 50%',
-                    '50% 0, 75% 0, 50% 50%',
-                    '75% 0, 100% 0, 100% 25%, 50% 50%',
-                    '100% 25%, 100% 50%, 50% 50%',
-                    '100% 50%, 100% 75%, 50% 50%',
-                    '100% 75%, 100% 100%, 75% 100%, 50% 50%',
-                    '75% 100%, 50% 100%, 50% 50%',
-                    '50% 100%, 25% 100%, 50% 50%',
-                    '25% 100%, 0 100%, 0 75%, 50% 50%',
-                    '0 75%, 0 50%, 50% 50%',
-                    '0 50%, 0 25%, 50% 50%'
-                ];
+                // Reveal the card waiting safely underneath (no fade, instant pop exactly when the canvas hides)
+                cardLayer.style.display = 'flex';
+
+                // Defines a mathematically perfect 32-piece radial shatter matching spiderweb fractures
+                const C = '50% 50%';
+                const I = ['35% 35%', '50% 25%', '65% 35%', '75% 50%', '65% 65%', '50% 75%', '35% 65%', '25% 50%'];
+                const P = ['0 0', '25% 0', '50% 0', '75% 0', '100% 0', '100% 25%', '100% 50%', '100% 75%', '100% 100%', '75% 100%', '50% 100%', '25% 100%', '0 100%', '0 75%', '0 50%', '0 25%'];
+
+                const polys = [];
+                // Center burst (8 pieces)
+                for (let i = 0; i < 8; i++) polys.push(`${C}, ${I[i]}, ${I[(i + 1) % 8]}`);
+
+                // Outer peripheral fragments (24 pieces)
+                polys.push(`${I[0]}, ${P[15]}, ${P[0]}`); polys.push(`${I[0]}, ${P[0]}, ${P[1]}`); polys.push(`${I[0]}, ${I[1]}, ${P[1]}`);
+                polys.push(`${I[1]}, ${P[1]}, ${P[2]}`); polys.push(`${I[1]}, ${P[2]}, ${P[3]}`); polys.push(`${I[1]}, ${I[2]}, ${P[3]}`);
+                polys.push(`${I[2]}, ${P[3]}, ${P[4]}`); polys.push(`${I[2]}, ${P[4]}, ${P[5]}`); polys.push(`${I[2]}, ${I[3]}, ${P[5]}`);
+                polys.push(`${I[3]}, ${P[5]}, ${P[6]}`); polys.push(`${I[3]}, ${P[6]}, ${P[7]}`); polys.push(`${I[3]}, ${I[4]}, ${P[7]}`);
+                polys.push(`${I[4]}, ${P[7]}, ${P[8]}`); polys.push(`${I[4]}, ${P[8]}, ${P[9]}`); polys.push(`${I[4]}, ${I[5]}, ${P[9]}`);
+                polys.push(`${I[5]}, ${P[9]}, ${P[10]}`); polys.push(`${I[5]}, ${P[10]}, ${P[11]}`); polys.push(`${I[5]}, ${I[6]}, ${P[11]}`);
+                polys.push(`${I[6]}, ${P[11]}, ${P[12]}`); polys.push(`${I[6]}, ${P[12]}, ${P[13]}`); polys.push(`${I[6]}, ${I[7]}, ${P[13]}`);
+                polys.push(`${I[7]}, ${P[13]}, ${P[14]}`); polys.push(`${I[7]}, ${P[14]}, ${P[15]}`); polys.push(`${I[7]}, ${I[0]}, ${P[15]}`);
 
                 // Generate and animate the falling shards
                 polys.forEach((p, i) => {
@@ -549,17 +646,19 @@
                     shard.style.clipPath = `polygon(${p})`;
                     document.body.appendChild(shard);
 
-                    // Delay slightly to ensure render, then blast them outward and down
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(() => {
-                            const angle = (i / 12) * Math.PI * 2;
-                            const tx = Math.cos(angle) * (300 + Math.random() * 400); // Push outward based on angle
-                            const ty = 800 + Math.random() * 500; // Gravity heavy
-                            const rot = (Math.random() - 0.5) * 180; // Tumble
-                            shard.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
-                            shard.style.opacity = '0';
-                        });
-                    });
+                    const isInner = i < 8; // Center pieces break out first
+                    const cascadeDelay = isInner ? Math.random() * 50 : 100 + Math.random() * 200;
+
+                    setTimeout(() => {
+                        const tx = (Math.random() - 0.5) * 100; // Minimal horizontal drift, mostly vertical collapse
+                        const ty = window.innerHeight + 200 + Math.random() * 300; // Heavy fall downwards
+                        const rotX = Math.random() * 720 - 360; // Tumble
+                        const rotY = Math.random() * 720 - 360;
+                        const rotZ = Math.random() * 90 - 45;
+
+                        shard.style.transform = `translate3d(${tx}px, ${ty}px, 0) rotateX(${rotX}deg) rotateY(${rotY}deg) rotateZ(${rotZ}deg)`;
+                        shard.style.opacity = '0';
+                    }, cascadeDelay);
                 });
 
                 // Clear WebGL resources to save battery after shards fall
