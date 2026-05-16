@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>코레일 역명판 제너레이터</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @font-face {
+            font-family: 'Korail';
+            src: url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&display=swap');
+        }
+
+        body {
+            font-family: 'Korail', 'Noto Sans KR', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .title {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .input-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            height: fit-content;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .info-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .line-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .line-info-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .line-info-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+        }
+
+        .btn-download {
+            background: #4CAF50;
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-download:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-copy {
+            background: #2196F3;
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-copy:hover {
+            background: #0b7dda;
+            transform: translateY(-2px);
+        }
+
+        .preview-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .preview-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 350px;
+            overflow-x: auto;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .preset-btn {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: #f5f5f5;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .input-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🚂 코레일 역명판 제너레이터</h1>
+
+        <div class="main-content">
+            <!-- 입력 패널 -->
+            <div class="input-panel">
+                <div class="line-info">
+                    <div class="line-info-label">현재 노선</div>
+                    <div class="line-info-value" id="lineInfoDisplay">자동 감지</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="currentStationNumber">현재역 번호</label>
+                    <input type="text" id="currentStationNumber" placeholder="예: 173, P04" value="173">
+                    <p class="info-text">숫자 또는 영문자 포함</p>
+                </div>
+
+                <div class="input-group">
+                    <label for="currentStationNameKo">현재역 한글명</label>
+                    <input type="text" id="currentStationNameKo" placeholder="예: 당정" value="당정">
+                </div>
+
+                <div class="input-group">
+                    <label for="currentStationNameEn">현재역 영문명</label>
+                    <input type="text" id="currentStationNameEn" placeholder="예: Tangjeong" value="Tangjeong">
+                </div>
+
+                <div class="input-group">
+                    <label for="prevStationNumber">이전역 번호 (선택사항)</label>
+                    <input type="text" id="prevStationNumber" placeholder="예: 174" value="174">
+                </div>
+
+                <div class="input-group">
+                    <label for="prevStationNameKo">이전역 한글명</label>
+                    <input type="text" id="prevStationNameKo" placeholder="예: 배방" value="배방">
+                </div>
+
+                <div class="input-group">
+                    <label for="prevStationNameEn">이전역 영문명</label>
+                    <input type="text" id="prevStationNameEn" placeholder="예: Baebang" value="Baebang">
+                </div>
+
+                <div class="input-group">
+                    <label for="nextStationNumber">다음역 번호 (선택사항)</label>
+                    <input type="text" id="nextStationNumber" placeholder="예: 172" value="172">
+                </div>
+
+                <div class="input-group">
+                    <label for="nextStationNameKo">다음역 한글명</label>
+                    <input type="text" id="nextStationNameKo" placeholder="예: 아산" value="아산">
+                </div>
+
+                <div class="input-group">
+                    <label for="nextStationNameEn">다음역 영문명</label>
+                    <input type="text" id="nextStationNameEn" placeholder="예: Asan" value="Asan">
+                </div>
+
+                <div class="input-group">
+                    <label>미리 정해진 역 선택</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="setPreset('101', '서울', 'Seoul', '102', '시청', 'City Hall', '100', '광화문', 'Gwanghwamun')">서울역</button>
+                        <button class="preset-btn" onclick="setPreset('212', '강남', 'Gangnam', '211', '교대', 'Gyeongdae', '213', '선릉', 'Seolleung')">강남역</button>
+                        <button class="preset-btn" onclick="setPreset('173', '당정', 'Tangjeong', '174', '배방', 'Baebang', '172', '아산', 'Asan')">당정역</button>
+                        <button class="preset-btn" onclick="setPreset('305', '종로3가', 'Jongno 3-ga', '306', '안국', 'Anguk', '304', '종로5가', 'Jongno 5-ga')">종로3가</button>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-download" onclick="downloadImage()">📥 다운로드</button>
+                    <button class="btn-copy" onclick="copyToClipboard()">📋 클립보드</button>
+                </div>
+            </div>
+
+            <!-- 미리보기 패널 -->
+            <div class="preview-panel">
+                <div class="preview-container">
+                    <canvas id="signboardCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SVG 화살표 이미지 캐싱
+        let cachedArrowImage = null;
+
+        function initArrowImage() {
+            const svgArrow = `<svg width="120" height="70" viewBox="0 0 120 70" xmlns="http://www.w3.org/2000/svg">
+              <line x1="15" y1="35" x2="85" y2="35" stroke="#FFD700" stroke-width="6" stroke-linecap="round"/>
+              <polygon points="100,35 70,10 70,60" fill="#FFD700"/>
+            </svg>`;
+            
+            cachedArrowImage = new Image();
+            cachedArrowImage.src = 'data:image/svg+xml;base64,' + btoa(svgArrow);
+        }
+
+        function setPreset(curNum, curKo, curEn, prevNum, prevKo, prevEn, nextNum, nextKo, nextEn) {
+            document.getElementById('currentStationNumber').value = curNum;
+            document.getElementById('currentStationNameKo').value = curKo;
+            document.getElementById('currentStationNameEn').value = curEn;
+            document.getElementById('prevStationNumber').value = prevNum;
+            document.getElementById('prevStationNameKo').value = prevKo;
+            document.getElementById('prevStationNameEn').value = prevEn;
+            document.getElementById('nextStationNumber').value = nextNum;
+            document.getElementById('nextStationNameKo').value = nextKo;
+            document.getElementById('nextStationNameEn').value = nextEn;
+            generateSignboard();
+        }
+
+        function generateSignboard() {
+            const canvas = document.getElementById('signboardCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const currentNum = document.getElementById('currentStationNumber').value;
+            const currentKo = document.getElementById('currentStationNameKo').value;
+            const currentEn = document.getElementById('currentStationNameEn').value;
+            const prevNum = document.getElementById('prevStationNumber').value;
+            const prevKo = document.getElementById('prevStationNameKo').value;
+            const prevEn = document.getElementById('prevStationNameEn').value;
+            const nextNum = document.getElementById('nextStationNumber').value;
+            const nextKo = document.getElementById('nextStationNameKo').value;
+            const nextEn = document.getElementById('nextStationNameEn').value;
+
+            // 노선 정보 표시 업데이트
+            document.getElementById('lineInfoDisplay').textContent = '코레일';
+            document.getElementById('lineInfoDisplay').style.color = '#0052A3';
+
+            // 캔버스 크기 설정
+            const canvasWidth = 1200;
+            const canvasHeight = 300;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // 남색 배경 (고정)
+            const bgColor = '#0052A3';
+            const fgColor = '#FFFFFF';
+            
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // 노란색 상단 선
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(0, 0, canvasWidth, 8);
+
+            const topMargin = 30;
+            const bottomBarHeight = 50;
+            const mainAreaHeight = canvasHeight - topMargin - bottomBarHeight;
+
+            // 좌측 영역 (이전역)
+            const leftCenterX = 90;
+            const leftY = topMargin + mainAreaHeight / 2;
+
+            if (prevNum) {
+                // 이전역 번호 (원형 - 테두리만)
+                ctx.strokeStyle = fgColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(leftCenterX, leftY - 35, 30, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = fgColor;
+                ctx.font = 'bold 26px Korail, "Noto Sans KR", Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(prevNum, leftCenterX, leftY - 35);
+
+                // 이전역 한글명
+                ctx.fillStyle = fgColor;
+                ctx.font = 'bold 18px Korail, "Noto Sans KR", Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(prevKo, leftCenterX, leftY + 5);
+
+                // 이전역 영문명
+                ctx.fillStyle = fgColor;
+                ctx.font = '11px Korail, Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(prevEn, leftCenterX, leftY + 28);
+            }
+
+            // 중앙 영역 (현재역)
+            const centerX = canvasWidth / 2;
+            const centerY = topMargin + mainAreaHeight / 2;
+
+            // 현재역 번호 (원형 - 테두리만)
+            ctx.strokeStyle = fgColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX - 110, centerY - 40, 38, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = fgColor;
+            ctx.font = 'bold 34px Korail, "Noto Sans KR", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(currentNum, centerX - 110, centerY - 40);
+
+            // 중앙 구분선
+            ctx.strokeStyle = fgColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX + 40, centerY - 50);
+            ctx.lineTo(centerX + 40, centerY + 35);
+            ctx.stroke();
+
+            // 현재역 한글명 (매우 큼)
+            ctx.fillStyle = fgColor;
+            ctx.font = 'bold 75px Korail, "Noto Sans KR", Arial, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(currentKo, centerX + 60, centerY - 10);
+
+            // 현재역 영문명
+            ctx.fillStyle = fgColor;
+            ctx.font = 'bold 28px Korail, Arial, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(currentEn, centerX + 60, centerY + 25);
+
+            // 우측 영역 (다음역)
+            const rightCenterX = canvasWidth - 90;
+            const rightY = topMargin + mainAreaHeight / 2;
+
+            if (nextNum) {
+                // 다음역 번호 (원형 - 테두리만)
+                ctx.strokeStyle = fgColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(rightCenterX, rightY - 35, 30, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = fgColor;
+                ctx.font = 'bold 26px Korail, "Noto Sans KR", Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(nextNum, rightCenterX, rightY - 35);
+
+                // 다음역 한글명
+                ctx.fillStyle = fgColor;
+                ctx.font = 'bold 18px Korail, "Noto Sans KR", Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(nextKo, rightCenterX, rightY + 5);
+
+                // 다음역 영문명
+                ctx.fillStyle = fgColor;
+                ctx.font = '11px Korail, Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(nextEn, rightCenterX, rightY + 28);
+            }
+
+            // 하단 바
+            const bottomBarY = canvasHeight - bottomBarHeight;
+            
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, bottomBarY, canvasWidth, bottomBarHeight);
+
+            // 하단 노란색 선
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(0, bottomBarY, canvasWidth, 8);
+
+            // KORAIL 로고
+            ctx.fillStyle = fgColor;
+            ctx.font = 'bold 24px Korail, Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('KORAIL', 100, bottomBarY + bottomBarHeight / 2);
+
+            // SVG 화살표 그리기
+            if (cachedArrowImage && cachedArrowImage.complete) {
+                const arrowX = canvasWidth - 150;
+                const arrowY = bottomBarY - 5;
+                ctx.drawImage(cachedArrowImage, arrowX, arrowY);
+            }
+        }
+
+        function downloadImage() {
+            const canvas = document.getElementById('signboardCanvas');
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const stationName = document.getElementById('currentStationNameKo').value || 'station';
+            link.download = `역명판_${stationName}_${timestamp}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function copyToClipboard() {
+            const canvas = document.getElementById('signboardCanvas');
+            canvas.toBlob(blob => {
+                navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]).then(() => {
+                    alert('이미지가 클립보드에 복사되었습니다!');
+                }).catch(() => {
+                    alert('클립보드 복사에 실패했습니다.');
+                });
+            });
+        }
+
+        // 페이지 로드 시 초기 생성
+        window.addEventListener('load', () => {
+            initArrowImage();
+            generateSignboard();
+        });
+
+        // 입력값 변경시 실시간 미리보기
+        document.getElementById('currentStationNumber').addEventListener('input', generateSignboard);
+        document.getElementById('currentStationNameKo').addEventListener('input', generateSignboard);
+        document.getElementById('currentStationNameEn').addEventListener('input', generateSignboard);
+        document.getElementById('prevStationNumber').addEventListener('input', generateSignboard);
+        document.getElementById('prevStationNameKo').addEventListener('input', generateSignboard);
+        document.getElementById('prevStationNameEn').addEventListener('input', generateSignboard);
+        document.getElementById('nextStationNumber').addEventListener('input', generateSignboard);
+        document.getElementById('nextStationNameKo').addEventListener('input', generateSignboard);
+        document.getElementById('nextStationNameEn').addEventListener('input', generateSignboard);
+    </script>
+</body>
+</html>
