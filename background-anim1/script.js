@@ -21,6 +21,14 @@ const geminiKeyInput = document.getElementById('gemini-key-input');
 const weatherKeyInput = document.getElementById('weather-key-input');
 const saveApiKeysBtn = document.getElementById('save-api-keys-btn');
 
+// Advanced Apps Elements
+const advancedAppsToggle = document.getElementById('advanced-apps-toggle');
+const registryWarningModal = document.getElementById('registry-warning-modal');
+const cancelRegistryBtn = document.getElementById('cancel-registry-btn');
+const confirmRegistryBtn = document.getElementById('confirm-registry-btn');
+const appChrome = document.getElementById('app-chrome');
+const appChatplus = document.getElementById('app-chatplus');
+
 let geminiApiKey = null;
 let publicDataApiKey = null;
 let chatHistory = [];
@@ -69,6 +77,13 @@ function initAppWithKeys() {
     messageInput.disabled = false;
     getGPSWeather();
     loadSido();
+    
+    // 고급 앱 설정 초기화
+    if(localStorage.getItem('advancedAppsEnabled') === 'true') {
+        advancedAppsToggle.checked = true;
+        appChrome.classList.remove('hidden-app');
+        appChatplus.classList.remove('hidden-app');
+    }
 }
 
 // API 키 로드
@@ -114,6 +129,34 @@ chatToggleBtn.addEventListener('click', () => {
     if(!chatContainer.classList.contains('hidden')) {
         messageInput.focus();
     }
+});
+
+// ---------------- 고급 앱 토글 로직 ----------------
+advancedAppsToggle.addEventListener('change', (e) => {
+    if (e.target.checked) {
+        // 스위치를 켰을 때: 체크 상태를 잠시 풀고(시각적) 모달 띄우기
+        e.target.checked = false; 
+        registryWarningModal.classList.add('active');
+    } else {
+        // 스위치를 껐을 때: 즉시 숨기고 로컬 스토리지 업데이트
+        localStorage.setItem('advancedAppsEnabled', 'false');
+        appChrome.classList.add('hidden-app');
+        appChatplus.classList.add('hidden-app');
+    }
+});
+
+cancelRegistryBtn.addEventListener('click', () => {
+    registryWarningModal.classList.remove('active');
+    advancedAppsToggle.checked = false; // 유지
+});
+
+confirmRegistryBtn.addEventListener('click', () => {
+    // 동의 후 활성화
+    localStorage.setItem('advancedAppsEnabled', 'true');
+    advancedAppsToggle.checked = true;
+    appChrome.classList.remove('hidden-app');
+    appChatplus.classList.remove('hidden-app');
+    registryWarningModal.classList.remove('active');
 });
 
 gpsBtn.addEventListener('click', getGPSWeather);

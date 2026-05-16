@@ -332,6 +332,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
 .full-width-btn {
@@ -521,4 +523,164 @@ body {
     height: 60px;
     background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
     color: white;
+}
+
+/* Side Menu Launcher */
+.side-menu-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 1000;
+}
+
+.side-menu-trigger {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 15px;
+    height: 100%;
+    z-index: 1001;
+}
+
+.side-menu {
+    position: absolute;
+    top: 0;
+    left: -80px;
+    width: 70px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+    transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px 0;
+    z-index: 1000;
+}
+
+/* When hovering trigger OR the menu itself */
+.side-menu-trigger:hover + .side-menu,
+.side-menu:hover {
+    left: 0;
+}
+
+.app-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.app-item {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.app-item:hover {
+    transform: scale(1.15);
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.app-item svg {
+    width: 28px;
+    height: 28px;
+}
+
+/* Tooltips */
+.app-item::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 60px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-10px);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.app-item:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Hidden Apps */
+.hidden-app {
+    display: none !important;
+}
+
+/* Toggle Switch Styles */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
 }

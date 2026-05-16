@@ -7,6 +7,39 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Side Menu Trigger & Container -->
+    <div class="side-menu-container">
+        <div class="side-menu-trigger"></div>
+        <aside class="side-menu">
+            <ul class="app-list">
+                <!-- Calculator -->
+                <li class="app-item" data-tooltip="계산기" onclick="window.location.href='ms-calculator:'">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M8 18h.01M12 18h.01"></path></svg>
+                </li>
+                <!-- Chrome -->
+                <li class="app-item hidden-app" id="app-chrome" data-tooltip="Google Chrome" onclick="window.location.href='launch-chrome://'">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><line x1="21.17" y1="8" x2="12" y2="8"></line><line x1="3.95" y1="6.06" x2="8.54" y2="14"></line><line x1="10.88" y1="21.94" x2="15.46" y2="14"></line></svg>
+                </li>
+                <!-- Edge -->
+                <li class="app-item" data-tooltip="Microsoft Edge" onclick="window.location.href='microsoft-edge:'">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2a10 10 0 1 0 10 10c0-2-1.5-4-3.5-4s-3.5 2-3.5 4a3.5 3.5 0 0 1-7 0c0-5 4-8 8-8z"></path></svg>
+                </li>
+                <!-- Minecraft -->
+                <li class="app-item" data-tooltip="Minecraft Launcher" onclick="window.location.href='minecraft:'">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="#4CAF50" stroke-width="2" fill="none" stroke-linejoin="round"><path d="M21 8l-9 5-9-5M21 8v8l-9 5v-8M3 8v8l9 5v-8" stroke="#795548"/><path d="M12 3l9 5-9 5-9-5 9-5z" fill="#4CAF50" stroke="#4CAF50"/></svg>
+                </li>
+                <!-- KakaoTalk -->
+                <li class="app-item" data-tooltip="카카오톡" onclick="window.location.href='kakaotalk://'">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="#FEE500"><path d="M12 3c-5.52 0-10 3.58-10 8 0 2.5 1.45 4.75 3.65 6.22l-1.15 4.3 4.45-2.95c.95.27 1.98.43 3.05.43 5.52 0 10-3.58 10-8s-4.48-8-10-8z"/></svg>
+                </li>
+                <!-- Chat Plus -->
+                <li class="app-item hidden-app" id="app-chatplus" data-tooltip="채팅플러스" onclick="window.location.href='chatplus://'">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="#007AFF"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M11 10h4M13 8v4" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+                </li>
+            </ul>
+        </aside>
+    </div>
+
     <!-- Floating Settings Button -->
     <button id="settings-btn" class="floating-btn settings-floating-btn" aria-label="Settings">
         <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -88,6 +121,18 @@
                     </div>
                 </div>
 
+                <div class="divider"><span>고급 기능</span></div>
+                
+                <div class="settings-section">
+                    <div class="form-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                        <label for="advanced-apps-toggle" style="margin-bottom: 0;">고급 앱 (크롬, 채팅플러스) 표시</label>
+                        <label class="switch">
+                            <input type="checkbox" id="advanced-apps-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
                 <div id="weather-info-box" class="weather-info-box">
                     현재 날씨 상태를 불러오는 중입니다...
                 </div>
@@ -122,6 +167,33 @@
             </div>
             <div class="modal-footer">
                 <button id="save-api-keys-btn" class="save-btn">임시 적용 후 시작하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registry Warning Modal -->
+    <div class="modal-overlay" id="registry-warning-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>고급 앱 런처 활성화</h2>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.95rem; color: #444; margin-bottom: 16px; line-height: 1.5;">
+                    크롬과 채팅플러스는 웹 브라우저에서 직접 실행할 수 없는 프로그램입니다. 이 기능들을 사용하시려면 <strong>전용 레지스트리 패치</strong>를 먼저 설치해야 합니다.
+                </p>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-direction: column;">
+                    <a href="chrome_setup.reg" download class="save-btn" style="text-align: center; background: #ea4335; text-decoration: none;">Chrome 레지스트리 다운로드</a>
+                    <a href="chatplus_setup.reg" download class="save-btn" style="text-align: center; background: #007AFF; text-decoration: none;">채팅플러스 레지스트리 다운로드</a>
+                </div>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">
+                    1. 위 버튼을 눌러 .reg 파일을 다운로드합니다.<br>
+                    2. 다운로드된 파일을 더블클릭하여 실행(예)합니다.<br>
+                    3. 설치가 완료되면 아래 확인 버튼을 눌러주세요.
+                </p>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button id="cancel-registry-btn" class="save-btn" style="background: #999; flex: 1;">취소</button>
+                <button id="confirm-registry-btn" class="save-btn" style="flex: 2;">확인 및 활성화</button>
             </div>
         </div>
     </div>

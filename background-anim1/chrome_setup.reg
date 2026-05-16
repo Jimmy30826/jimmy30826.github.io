@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\launch-chrome]
+@="URL:Launch Chrome Protocol"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\launch-chrome\shell]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\launch-chrome\shell\open]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\launch-chrome\shell\open\command]
+@="\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\""

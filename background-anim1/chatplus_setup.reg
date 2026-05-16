@@ -1,0 +1,12 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\chatplus]
+@="URL:Chat Plus Protocol"
+"URL Protocol"=""
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\chatplus\shell]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\chatplus\shell\open]
+
+[HKEY_CURRENT_USER\SOFTWARE\Classes\chatplus\shell\open\command]
+@="\"C:\\Users\\redsu\\AppData\\Local\\Microsoft\\WindowsApps\\chattingpluslnk.exe\""
