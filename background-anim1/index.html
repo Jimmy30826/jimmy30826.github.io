@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chatbot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Floating Settings Button -->
+    <button id="settings-btn" class="floating-btn settings-floating-btn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+
+    <!-- Floating Chat Toggle Button -->
+    <button id="chat-toggle-btn" class="floating-btn chat-toggle-floating-btn" aria-label="Toggle Chat">
+        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+
+    <div class="chat-container hidden" id="chat-container">
+        <header class="chat-header">
+            <div class="header-content">
+                <div>
+                    <h1>Gemini AI</h1>
+                    <p>안녕하세요! 무엇을 도와드릴까요?</p>
+                </div>
+            </div>
+        </header>
+        
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be appended here -->
+        </div>
+
+        <div class="chat-input-container">
+            <input type="text" id="message-input" placeholder="메시지를 입력하세요..." autocomplete="off">
+            <button id="send-btn" aria-label="Send message">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>날씨 연동 위치 설정</h2>
+                <button class="close-btn" id="close-modal-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <button id="gps-btn" class="full-width-btn">📍 현재 위치로 자동 설정</button>
+                    <div class="divider"><span>또는 수동 지역 설정</span></div>
+                    
+                    <div class="form-group">
+                        <label for="sido-select">시/도</label>
+                        <select id="sido-select">
+                            <option value="">시/도 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sigungu-select">시/군/구</label>
+                        <select id="sigungu-select" disabled>
+                            <option value="">시/군/구 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dong-select">읍/면/동</label>
+                        <select id="dong-select" disabled>
+                            <option value="">읍/면/동 선택</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="divider"><span>또는 날씨 강제 지정</span></div>
+                
+                <div class="settings-section">
+                    <div class="form-group">
+                        <label for="manual-weather-select">임의 날씨 설정</label>
+                        <select id="manual-weather-select">
+                            <option value="">-- 위치 기반 사용 --</option>
+                            <option value="clear">맑음 ☀️</option>
+                            <option value="cloudy">흐림 ☁️</option>
+                            <option value="rain">비 🌧️</option>
+                            <option value="snow">눈 ❄️</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="weather-info-box" class="weather-info-box">
+                    현재 날씨 상태를 불러오는 중입니다...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-location-btn" class="save-btn" disabled>저장 및 닫기</button>
+            </div>
+        </div>
+    </div>
+    <div id="weather-background" class="weather-background">
+        <!-- Weather animations will be inserted here -->
+    </div>
+    
+    <!-- API Key Input Modal -->
+    <div class="modal-overlay" id="api-key-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>API 키 직접 입력</h2>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: #666; margin-bottom: 12px;">
+                    설정된 API 키를 찾을 수 없습니다. 사용할 키를 직접 입력해주세요. (보안을 위해 새로고침 시 즉시 삭제됩니다)
+                </p>
+                <div class="form-group">
+                    <label for="gemini-key-input">Gemini API Key</label>
+                    <input type="password" id="gemini-key-input" placeholder="AIzaSy..." style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="form-group" style="margin-top: 12px;">
+                    <label for="weather-key-input">공공데이터포털 API Key (선택)</label>
+                    <input type="password" id="weather-key-input" placeholder="기상청용 디코딩 키" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%; box-sizing: border-box;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-api-keys-btn" class="save-btn">임시 적용 후 시작하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="api_keys.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
