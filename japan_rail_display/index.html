@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese Railway Route Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PapaParse for CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar Controls -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h1>Japan Rail Routes</h1>
+                <p>Visualize railway networks</p>
+            </div>
+            
+            <div class="control-group">
+                <label for="line-select">Select Line</label>
+                <select id="line-select" disabled>
+                    <option value="">Loading data...</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="start-station">Start Station</label>
+                <select id="start-station" disabled>
+                    <option value="">Select a line first</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="end-station">End Station</label>
+                <select id="end-station" disabled>
+                    <option value="">Select a line first</option>
+                </select>
+            </div>
+
+            <button id="draw-btn" disabled>Draw Route</button>
+
+            <button id="reset-view-btn" class="secondary-btn">Reset View</button>
+
+            <div class="zoom-hint">
+                <span>🖱 Scroll to zoom &nbsp;&bull;&nbsp; Drag to pan</span>
+            </div>
+
+            <div id="loading-indicator" class="loading-indicator">
+                <div class="spinner"></div>
+                <span id="loading-text">Loading map and data...</span>
+            </div>
+        </aside>
+
+        <!-- Main Map Area -->
+        <main id="map-container">
+            <!-- SVG map will be injected here -->
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
