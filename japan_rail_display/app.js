@@ -6,8 +6,8 @@ const MAP_BOUNDS = {
     E: 151.58
 };
 const SVG_VIEWBOX = {
-    width: 581.981,
-    height: 579.907
+    width: 620,
+    height: 520
 };
 
 // Zoom/Pan State
@@ -85,7 +85,7 @@ async function init() {
         
         // Ensure SVG preserves aspect ratio and centers in container
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        svg.setAttribute('viewBox', '0 0 581.981 579.907');
+        svg.setAttribute('viewBox', '0 0 620 520');
         
         ui.mapContainer.innerHTML = '';
         ui.mapContainer.appendChild(svg);
