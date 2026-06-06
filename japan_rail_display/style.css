@@ -72,7 +72,8 @@ body {
     color: var(--text-secondary);
 }
 
-select {
+select,
+#line-search {
     width: 100%;
     padding: 0.75rem 1rem;
     background: rgba(15, 23, 42, 0.6);
@@ -86,7 +87,12 @@ select {
     appearance: none;
 }
 
-select:focus {
+#line-search {
+    cursor: text;
+}
+
+select:focus,
+#line-search:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
@@ -121,6 +127,110 @@ button:hover:not(:disabled) {
 button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+#add-line-btn {
+    width: 100%;
+    background-color: #2563eb;
+    margin-top: 0;
+}
+
+#add-line-btn:hover:not(:disabled) {
+    background-color: #1d4ed8;
+}
+
+.selected-line-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.selected-line-empty {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px dashed var(--panel-border);
+    border-radius: 12px;
+}
+
+.selected-line-item {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+}
+
+.selected-line-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.selected-line-badge {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.selected-line-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+}
+
+.selected-line-title strong {
+    font-size: 1rem;
+}
+
+.selected-line-title span {
+    color: var(--text-secondary);
+    font-size: 0.83rem;
+}
+
+.selected-line-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.selected-line-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.selected-line-actions .panel-draw-btn,
+.remove-line-btn {
+    background-color: transparent;
+    border: 1px solid rgba(248, 250, 252, 0.2);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.selected-line-actions .panel-draw-btn:hover,
+.remove-line-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.selected-line-actions .panel-draw-btn {
+    background: var(--accent-color);
+    color: white;
+    border-color: transparent;
+}
+
+.selected-line-actions .panel-draw-btn:hover {
+    background: var(--accent-hover);
 }
 
 .secondary-btn {
@@ -195,31 +305,35 @@ button:disabled {
 .rail-route {
     fill: none;
     stroke: var(--route-color);
-    stroke-width: 0.6;
+    stroke-width: 0.8;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-dasharray: 1000;
     stroke-dashoffset: 1000;
     animation: drawRoute 2s ease-out forwards;
+    vector-effect: non-scaling-stroke;
 }
 
 .rail-station {
     fill: var(--route-color);
     stroke: var(--bg-color);
-    stroke-width: 0.3;
+    stroke-width: 0.2;
     opacity: 0;
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    vector-effect: non-scaling-stroke;
 }
 
 .rail-route-full {
     fill: none;
-    stroke-width: 0.6;
+    stroke-width: 0.7;
     stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
 }
 
 .rail-station-full {
     stroke: var(--bg-color);
     stroke-width: 0.2;
+    vector-effect: non-scaling-stroke;
 }
 
 @keyframes drawRoute {

@@ -20,14 +20,23 @@ let linesData = {}; // line_cd -> { name, color }
 let stationsData = {}; // station_cd -> { name, lon, lat, line_cd }
 let graph = {}; // line_cd -> { station_cd -> [adjacent_station_cds] }
 let lineStations = {}; // line_cd -> [station_cds]
+let selectedLines = []; // order of selected line codes
+let linePanels = {}; // line_cd -> panel state
 
 // Circle tracking for zoom-proportional sizing
-let stationCircles = []; // { element, state: 'normal'|'hover' }
-const CIRCLE_FRACTION       = 0.006;  // normal size as fraction of viewBox.w
-const CIRCLE_HOVER_FRACTION = 0.014;
+let stationCircles = []; // all visible circles
+const CIRCLE_PX            = 4;    // normal size in screen pixels
+const CIRCLE_HOVER_PX      = 8;    // hover size in screen pixels
 
 function getR(hover = false) {
-    return (hover ? CIRCLE_HOVER_FRACTION : CIRCLE_FRACTION) * viewBox.w;
+    const svg = ui.mapContainer.querySelector('svg');
+    const pixelRadius = hover ? CIRCLE_HOVER_PX : CIRCLE_PX;
+    if (!svg) {
+        return pixelRadius * (viewBox.w / SVG_VIEWBOX.width);
+    }
+    const rect = svg.getBoundingClientRect();
+    const unitsPerPixel = viewBox.w / rect.width;
+    return pixelRadius * unitsPerPixel;
 }
 function updateCircleRadii() {
     for (const c of stationCircles) {
@@ -37,18 +46,23 @@ function updateCircleRadii() {
 
 // DOM Elements
 const ui = {
+    lineSearch: document.getElementById('line-search'),
     lineSelect: document.getElementById('line-select'),
-    startStation: document.getElementById('start-station'),
-    endStation: document.getElementById('end-station'),
-    drawBtn: document.getElementById('draw-btn'),
+    addLineBtn: document.getElementById('add-line-btn'),
+    selectedLineList: document.getElementById('selected-line-list'),
     loadingIndicator: document.getElementById('loading-indicator'),
     loadingText: document.getElementById('loading-text'),
     mapContainer: document.getElementById('map-container')
 };
 
 // Helper: Convert Lat/Lon to SVG X/Y
+const LONGITUDE_SCALE = (SVG_VIEWBOX.width / SVG_VIEWBOX.height) *
+    ((MAP_BOUNDS.N - MAP_BOUNDS.S) / (MAP_BOUNDS.E - MAP_BOUNDS.W));
+
 function project(lon, lat) {
-    const x = ((lon - MAP_BOUNDS.W) / (MAP_BOUNDS.E - MAP_BOUNDS.W)) * SVG_VIEWBOX.width;
+    const scaledWidth = SVG_VIEWBOX.width * LONGITUDE_SCALE;
+    const xOffset = (SVG_VIEWBOX.width - scaledWidth) / 2;
+    const x = ((lon - MAP_BOUNDS.W) / (MAP_BOUNDS.E - MAP_BOUNDS.W)) * scaledWidth + xOffset;
     const y = ((MAP_BOUNDS.N - lat) / (MAP_BOUNDS.N - MAP_BOUNDS.S)) * SVG_VIEWBOX.height;
     return { x, y };
 }
@@ -67,9 +81,12 @@ async function init() {
         const svg = ui.mapContainer.querySelector('svg');
         svg.style.cursor = 'grab';
         svg.style.userSelect = 'none';
-        const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        overlay.setAttribute('id', 'route-layer');
-        svg.appendChild(overlay);
+        const lineLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        lineLayer.setAttribute('id', 'line-layer');
+        svg.appendChild(lineLayer);
+        const routeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        routeLayer.setAttribute('id', 'route-layer');
+        svg.appendChild(routeLayer);
 
         // Setup zoom/pan
         setupZoomPan(svg);
@@ -95,6 +112,8 @@ async function init() {
 
         ui.loadingIndicator.classList.add('hidden');
         ui.lineSelect.disabled = false;
+        ui.lineSearch.disabled = false;
+        ui.addLineBtn.disabled = true;
 
     } catch (error) {
         console.error("Initialization error:", error);
@@ -164,10 +183,16 @@ function processJoins(data) {
 }
 
 // UI Population
-function populateLineSelect() {
-    // Sort lines alphabetically
+function populateLineSelect(filter = '') {
+    ui.lineSelect.innerHTML = '<option value="">Select a line</option>';
+    const normalizedFilter = filter.trim().toLowerCase();
+
     const sortedLines = Object.keys(linesData)
         .filter(lineCd => lineStations[lineCd] && lineStations[lineCd].size > 0)
+        .filter(lineCd => {
+            if (!normalizedFilter) return true;
+            return linesData[lineCd].name.toLowerCase().includes(normalizedFilter);
+        })
         .sort((a, b) => linesData[a].name.localeCompare(linesData[b].name));
 
     sortedLines.forEach(lineCd => {
@@ -176,16 +201,18 @@ function populateLineSelect() {
         option.textContent = linesData[lineCd].name;
         ui.lineSelect.appendChild(option);
     });
+
+    ui.lineSelect.disabled = sortedLines.length === 0;
+    ui.addLineBtn.disabled = true;
 }
 
-function populateStationSelects(lineCd) {
-    ui.startStation.innerHTML = '<option value="">Select Start</option>';
-    ui.endStation.innerHTML = '<option value="">Select End</option>';
-    
+function populateStationSelectsForPanel(lineCd, startSelect, endSelect) {
+    startSelect.innerHTML = '<option value="">Select Start</option>';
+    endSelect.innerHTML = '<option value="">Select End</option>';
+
     if (!lineCd) {
-        ui.startStation.disabled = true;
-        ui.endStation.disabled = true;
-        ui.drawBtn.disabled = true;
+        startSelect.disabled = true;
+        endSelect.disabled = true;
         return;
     }
 
@@ -195,62 +222,223 @@ function populateStationSelects(lineCd) {
 
     stations.forEach(cd => {
         const station = stationsData[cd];
-        const opt1 = document.createElement('option');
-        opt1.value = cd;
-        opt1.textContent = station.name;
-        
-        const opt2 = opt1.cloneNode(true);
-        
-        ui.startStation.appendChild(opt1);
-        ui.endStation.appendChild(opt2);
+        const option = document.createElement('option');
+        option.value = cd;
+        option.textContent = station.name;
+        startSelect.appendChild(option);
+        endSelect.appendChild(option.cloneNode(true));
     });
 
-    ui.startStation.disabled = false;
-    ui.endStation.disabled = false;
-    checkReadyToDraw();
+    startSelect.disabled = false;
+    endSelect.disabled = false;
+}
+
+function createLinePanel(lineCd) {
+    const color = linesData[lineCd].color || '#ef4444';
+    const displayColor = color.startsWith('#') ? color : '#' + color;
+    const panel = document.createElement('div');
+    panel.className = 'selected-line-item';
+    panel.dataset.lineCd = lineCd;
+    panel.innerHTML = `
+        <div class="selected-line-header">
+            <div class="selected-line-badge" style="background:${displayColor}"></div>
+            <div class="selected-line-title">
+                <strong>${linesData[lineCd].name}</strong>
+                <span>${lineCd}</span>
+            </div>
+            <button type="button" class="remove-line-btn">삭제</button>
+        </div>
+        <div class="selected-line-controls">
+            <div class="control-group">
+                <label>Start Station</label>
+                <select class="panel-start-station"></select>
+            </div>
+            <div class="control-group">
+                <label>End Station</label>
+                <select class="panel-end-station"></select>
+            </div>
+        </div>
+        <div class="selected-line-actions">
+            <button type="button" class="panel-draw-btn">경로 그리기</button>
+        </div>
+    `;
+
+    const startSelect = panel.querySelector('.panel-start-station');
+    const endSelect = panel.querySelector('.panel-end-station');
+    const drawBtn = panel.querySelector('.panel-draw-btn');
+    const removeBtn = panel.querySelector('.remove-line-btn');
+
+    populateStationSelectsForPanel(lineCd, startSelect, endSelect);
+
+    drawBtn.addEventListener('click', () => {
+        const startCd = startSelect.value;
+        const endCd = endSelect.value;
+        drawLinePanelRoute(lineCd, startCd, endCd);
+    });
+
+    removeBtn.addEventListener('click', () => {
+        removeSelectedLine(lineCd);
+    });
+
+    ui.selectedLineList.appendChild(panel);
+    linePanels[lineCd] = { lineCd, panel, routePath: null };
+}
+
+function updateSelectedLinePlaceholder() {
+    const empty = document.querySelector('.selected-line-empty');
+    if (!empty) return;
+    empty.style.display = selectedLines.length ? 'none' : 'block';
+}
+
+function addSelectedLine(lineCd) {
+    if (!lineCd || linePanels[lineCd]) return;
+    selectedLines.push(lineCd);
+    createLinePanel(lineCd);
+    updateSelectedLinePlaceholder();
+    drawSelectedLines();
+}
+
+function removeSelectedLine(lineCd) {
+    delete linePanels[lineCd];
+    selectedLines = selectedLines.filter(code => code !== lineCd);
+    const panel = ui.selectedLineList.querySelector(`.selected-line-item[data-line-cd="${lineCd}"]`);
+    if (panel) panel.remove();
+    drawSelectedLines();
+    drawRoutes();
+}
+
+function drawSelectedLines() {
+    clearLineLayer();
+    const overlay = document.getElementById('line-layer');
+    if (!overlay) return;
+
+    const drawnStations = new Set();
+    selectedLines.forEach(lineCd => drawFullLine(lineCd, overlay, drawnStations));
+}
+
+function drawRoutes() {
+    clearRouteLayer();
+    const overlay = document.getElementById('route-layer');
+    if (!overlay) return;
+
+    selectedLines.forEach(lineCd => {
+        const panel = linePanels[lineCd];
+        if (panel?.routePath) {
+            drawRoutePath(panel.routePath, lineCd, overlay);
+        }
+    });
+}
+
+function drawLinePanelRoute(lineCd, startCd, endCd) {
+    if (!lineCd || !startCd || !endCd) {
+        alert('시작역과 도착역을 모두 선택해주세요.');
+        return;
+    }
+
+    const path = findShortestPath(lineCd, startCd, endCd);
+    if (!path) {
+        alert('선택한 노선에서 해당 구간 경로를 찾을 수 없습니다.');
+        return;
+    }
+
+    if (!linePanels[lineCd]) return;
+    linePanels[lineCd].routePath = path;
+    drawRoutes();
+}
+
+function drawRoutePath(path, lineCd, overlay) {
+    const points = path.map(cd => {
+        const st = stationsData[cd];
+        return project(st.lon, st.lat);
+    });
+
+    let color = linesData[lineCd].color;
+    if (!color.startsWith('#')) color = '#' + color;
+
+    const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    polyline.setAttribute('points', points.map(p => `${p.x},${p.y}`).join(' '));
+    polyline.setAttribute('class', 'rail-route');
+    polyline.style.setProperty('--route-color', color);
+
+    let totalLength = 0;
+    for (let i = 1; i < points.length; i++) {
+        const dx = points[i].x - points[i-1].x;
+        const dy = points[i].y - points[i-1].y;
+        totalLength += Math.sqrt(dx*dx + dy*dy);
+    }
+
+    polyline.style.strokeDasharray = totalLength + 50;
+    polyline.style.strokeDashoffset = totalLength + 50;
+    overlay.appendChild(polyline);
+
+    const tooltip = document.querySelector('.station-tooltip');
+    path.forEach((cd, index) => {
+        const st = stationsData[cd];
+        const pt = points[index];
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', pt.x);
+        circle.setAttribute('cy', pt.y);
+        circle.setAttribute('r', getR());
+        circle.setAttribute('class', 'rail-station');
+        circle.style.setProperty('--route-color', color);
+        circle.style.animationDelay = `${(index / path.length) * 1.5}s`;
+
+        const state = { element: circle, hovered: false };
+        stationCircles.push(state);
+
+        circle.addEventListener('mouseenter', (e) => {
+            state.hovered = true;
+            circle.setAttribute('r', getR(true));
+            tooltip.textContent = st.name;
+            tooltip.style.opacity = '1';
+            tooltip.style.left = (e.pageX + 10) + 'px';
+            tooltip.style.top = (e.pageY + 10) + 'px';
+        });
+        circle.addEventListener('mousemove', (e) => {
+            tooltip.style.left = (e.pageX + 10) + 'px';
+            tooltip.style.top = (e.pageY + 10) + 'px';
+        });
+        circle.addEventListener('mouseleave', () => {
+            state.hovered = false;
+            circle.setAttribute('r', getR());
+            tooltip.style.opacity = '0';
+        });
+
+        overlay.appendChild(circle);
+    });
+}
+
+function clearRouteLayer() {
+    const overlay = document.getElementById('route-layer');
+    if (overlay) overlay.innerHTML = '';
+    stationCircles = [];
+}
+
+function clearLineLayer() {
+    const overlay = document.getElementById('line-layer');
+    if (overlay) overlay.innerHTML = '';
+    stationCircles = [];
 }
 
 // Event Listeners
 function setupEventListeners() {
-    ui.lineSelect.addEventListener('change', (e) => {
-        const lineCd = e.target.value;
-        populateStationSelects(lineCd);
-        // Auto-draw full line immediately
-        if (lineCd) drawFullLine(lineCd);
-        else clearMap();
+    ui.lineSearch.addEventListener('input', (e) => {
+        populateLineSelect(e.target.value);
     });
 
-    ui.startStation.addEventListener('change', checkReadyToDraw);
-    ui.endStation.addEventListener('change', checkReadyToDraw);
+    ui.lineSelect.addEventListener('change', (e) => {
+        ui.addLineBtn.disabled = !e.target.value;
+    });
 
-    ui.drawBtn.addEventListener('click', () => {
+    ui.addLineBtn.addEventListener('click', () => {
         const lineCd = ui.lineSelect.value;
-        const startCd = ui.startStation.value;
-        const endCd = ui.endStation.value;
-        drawRoute(lineCd, startCd, endCd);
+        addSelectedLine(lineCd);
     });
 
     document.getElementById('reset-view-btn').addEventListener('click', () => {
         const svg = ui.mapContainer.querySelector('svg');
         if (svg) resetView(svg);
     });
-}
-
-function checkReadyToDraw() {
-    const lineCd  = ui.lineSelect.value;
-    const startCd = ui.startStation.value;
-    const endCd   = ui.endStation.value;
-    const hasRoute = lineCd && startCd && endCd;
-
-    // Enable button whenever a line is chosen
-    ui.drawBtn.disabled = !lineCd;
-
-    // Auto-draw: route when both selected, full line otherwise
-    if (hasRoute) {
-        drawRoute(lineCd, startCd, endCd);
-    } else if (lineCd) {
-        drawFullLine(lineCd);
-    }
 }
 
 // Pathfinding (BFS)
@@ -281,13 +469,13 @@ function findShortestPath(lineCd, startCd, endCd) {
 
 // Map Rendering
 function clearMap() {
-    const overlay = document.getElementById('route-layer');
-    if (overlay) overlay.innerHTML = '';
+    clearRouteLayer();
+    clearLineLayer();
     stationCircles = [];
 }
 
 function drawRoute(lineCd, startCd, endCd) {
-    clearMap();
+    clearRouteLayer();
     const overlay = document.getElementById('route-layer');
     const path = findShortestPath(lineCd, startCd, endCd);
 
@@ -340,6 +528,7 @@ function drawRoute(lineCd, startCd, endCd) {
 
         const state = { element: circle, hovered: false };
         stationCircles.push(state);
+        routeCircles.push(state);
 
         // Interaction
         circle.addEventListener('mouseenter', (e) => {
@@ -365,10 +554,9 @@ function drawRoute(lineCd, startCd, endCd) {
 }
 
 // ── Draw Full Line ───────────────────────────────────────────
-function drawFullLine(lineCd) {
-    clearMap();
-    const overlay = document.getElementById('route-layer');
-    if (!lineCd || !graph[lineCd]) return;
+function drawFullLine(lineCd, overlay = null, drawnStations = new Set()) {
+    const lineOverlay = overlay || document.getElementById('line-layer');
+    if (!lineCd || !graph[lineCd] || !lineOverlay) return;
 
     let color = linesData[lineCd].color;
     if (!color) color = 'ef4444';
@@ -398,13 +586,16 @@ function drawFullLine(lineCd) {
             seg.setAttribute('y2', p2.y);
             seg.setAttribute('class', 'rail-route-full');
             seg.style.stroke = color;
-            overlay.appendChild(seg);
+            lineOverlay.appendChild(seg);
         }
     }
 
     // Draw station dots
     const tooltip = document.querySelector('.station-tooltip');
     for (const stCd of lineStations[lineCd]) {
+        if (drawnStations.has(stCd)) continue;
+        drawnStations.add(stCd);
+
         const st = stationsData[stCd];
         if (!st) continue;
         const pt = project(st.lon, st.lat);
@@ -418,6 +609,7 @@ function drawFullLine(lineCd) {
 
         const state = { element: circle, hovered: false };
         stationCircles.push(state);
+        lineCircles.push(state);
 
         circle.addEventListener('mouseenter', (e) => {
             state.hovered = true;
@@ -437,7 +629,7 @@ function drawFullLine(lineCd) {
             tooltip.style.opacity = '0';
         });
 
-        overlay.appendChild(circle);
+        lineOverlay.appendChild(circle);
     }
 }
 
@@ -504,6 +696,10 @@ function setupZoomPan(svg) {
         if (!isPanning) return;
         isPanning = false;
         svg.style.cursor = 'grab';
+    });
+
+    window.addEventListener('resize', () => {
+        if (svg) applyViewBox(svg);
     });
 
     // Touch zoom/pan (two-finger pinch + drag)

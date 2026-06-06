@@ -20,27 +20,21 @@
             </div>
             
             <div class="control-group">
+                <label for="line-search">Search Lines</label>
+                <input id="line-search" type="search" placeholder="Search line..." disabled>
+            </div>
+
+            <div class="control-group">
                 <label for="line-select">Select Line</label>
                 <select id="line-select" disabled>
                     <option value="">Loading data...</option>
                 </select>
             </div>
 
-            <div class="control-group">
-                <label for="start-station">Start Station</label>
-                <select id="start-station" disabled>
-                    <option value="">Select a line first</option>
-                </select>
+            <button id="add-line-btn" disabled>라인 추가</button>
+            <div id="selected-line-list" class="selected-line-list">
+                <div class="selected-line-empty">노선을 추가하면 아래에 개별 설정 패널이 생성됩니다.</div>
             </div>
-
-            <div class="control-group">
-                <label for="end-station">End Station</label>
-                <select id="end-station" disabled>
-                    <option value="">Select a line first</option>
-                </select>
-            </div>
-
-            <button id="draw-btn" disabled>Draw Route</button>
 
             <button id="reset-view-btn" class="secondary-btn">Reset View</button>
 
