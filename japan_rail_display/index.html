@@ -12,12 +12,16 @@
 </head>
 <body>
     <div id="app">
-        <!-- Sidebar Controls -->
-        <aside id="sidebar">
-            <div class="sidebar-header">
-                <h1>Japan Rail Routes</h1>
-                <p>Visualize railway networks</p>
-            </div>
+        <!-- Sidebar Wrapper -->
+        <div class="sidebar-wrapper">
+            <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle sidebar">›</button>
+            
+            <!-- Sidebar Controls -->
+            <aside id="sidebar">
+                <div class="sidebar-header">
+                    <h1>Japan Rail Routes</h1>
+                    <p>Visualize railway networks</p>
+                </div>
             
             <div class="control-group">
                 <label for="line-search">Search Lines</label>
@@ -47,6 +51,7 @@
                 <span id="loading-text">Loading map and data...</span>
             </div>
         </aside>
+        </div>
 
         <!-- Main Map Area -->
         <main id="map-container">

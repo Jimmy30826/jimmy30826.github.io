@@ -25,6 +25,7 @@ let linePanels = {}; // line_cd -> panel state
 
 // Circle tracking for zoom-proportional sizing
 let stationCircles = []; // all visible circles
+let routeCircles = []; // route-specific station circles
 const CIRCLE_PX            = 4;    // normal size in screen pixels
 const CIRCLE_HOVER_PX      = 8;    // hover size in screen pixels
 
@@ -52,17 +53,14 @@ const ui = {
     selectedLineList: document.getElementById('selected-line-list'),
     loadingIndicator: document.getElementById('loading-indicator'),
     loadingText: document.getElementById('loading-text'),
-    mapContainer: document.getElementById('map-container')
+    mapContainer: document.getElementById('map-container'),
+    sidebarWrapper: document.querySelector('.sidebar-wrapper'),
+    sidebarToggle: document.getElementById('sidebar-toggle')
 };
 
 // Helper: Convert Lat/Lon to SVG X/Y
-const LONGITUDE_SCALE = (SVG_VIEWBOX.width / SVG_VIEWBOX.height) *
-    ((MAP_BOUNDS.N - MAP_BOUNDS.S) / (MAP_BOUNDS.E - MAP_BOUNDS.W));
-
 function project(lon, lat) {
-    const scaledWidth = SVG_VIEWBOX.width * LONGITUDE_SCALE;
-    const xOffset = (SVG_VIEWBOX.width - scaledWidth) / 2;
-    const x = ((lon - MAP_BOUNDS.W) / (MAP_BOUNDS.E - MAP_BOUNDS.W)) * scaledWidth + xOffset;
+    const x = ((lon - MAP_BOUNDS.W) / (MAP_BOUNDS.E - MAP_BOUNDS.W)) * SVG_VIEWBOX.width;
     const y = ((MAP_BOUNDS.N - lat) / (MAP_BOUNDS.N - MAP_BOUNDS.S)) * SVG_VIEWBOX.height;
     return { x, y };
 }
@@ -74,11 +72,24 @@ async function init() {
         
         // 1. Load SVG Map
         const mapResponse = await fetch('japan_map_clean.svg');
+        if (!mapResponse.ok) {
+            throw new Error(`Failed to load SVG map: ${mapResponse.status}`);
+        }
         const mapText = await mapResponse.text();
-        ui.mapContainer.innerHTML = mapText;
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(mapText, 'image/svg+xml');
+        const svg = svgDoc.querySelector('svg');
+        if (!svg) {
+            throw new Error('SVG file did not contain a valid <svg> element.');
+        }
         
-        // Add overlay layer to SVG
-        const svg = ui.mapContainer.querySelector('svg');
+        // Ensure SVG preserves aspect ratio and centers in container
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        svg.setAttribute('viewBox', '0 0 581.981 579.907');
+        
+        ui.mapContainer.innerHTML = '';
+        ui.mapContainer.appendChild(svg);
+
         svg.style.cursor = 'grab';
         svg.style.userSelect = 'none';
         const lineLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -257,6 +268,14 @@ function createLinePanel(lineCd) {
                 <label>End Station</label>
                 <select class="panel-end-station"></select>
             </div>
+            <div class="control-group">
+                <label>Line Color</label>
+                <input type="color" class="panel-color-input" value="${displayColor}">
+            </div>
+            <div class="control-group">
+                <label>Line Width <span class="line-width-value">3</span>px</label>
+                <input type="range" class="panel-width-range" min="1" max="8" step="0.5" value="3">
+            </div>
         </div>
         <div class="selected-line-actions">
             <button type="button" class="panel-draw-btn">경로 그리기</button>
@@ -265,10 +284,31 @@ function createLinePanel(lineCd) {
 
     const startSelect = panel.querySelector('.panel-start-station');
     const endSelect = panel.querySelector('.panel-end-station');
+    const colorInput = panel.querySelector('.panel-color-input');
+    const widthRange = panel.querySelector('.panel-width-range');
+    const widthValue = panel.querySelector('.line-width-value');
     const drawBtn = panel.querySelector('.panel-draw-btn');
     const removeBtn = panel.querySelector('.remove-line-btn');
 
     populateStationSelectsForPanel(lineCd, startSelect, endSelect);
+
+    colorInput.addEventListener('input', (e) => {
+        const selectedColor = e.target.value;
+        panel.querySelector('.selected-line-badge').style.background = selectedColor;
+        if (linePanels[lineCd]) {
+            linePanels[lineCd].color = selectedColor;
+            drawRoutes();
+        }
+    });
+
+    widthRange.addEventListener('input', (e) => {
+        const width = parseFloat(e.target.value);
+        widthValue.textContent = width;
+        if (linePanels[lineCd]) {
+            linePanels[lineCd].width = width;
+            drawRoutes();
+        }
+    });
 
     drawBtn.addEventListener('click', () => {
         const startCd = startSelect.value;
@@ -281,7 +321,13 @@ function createLinePanel(lineCd) {
     });
 
     ui.selectedLineList.appendChild(panel);
-    linePanels[lineCd] = { lineCd, panel, routePath: null };
+    linePanels[lineCd] = {
+        lineCd,
+        panel,
+        routePath: null,
+        color: displayColor,
+        width: 3
+    };
 }
 
 function updateSelectedLinePlaceholder() {
@@ -295,7 +341,6 @@ function addSelectedLine(lineCd) {
     selectedLines.push(lineCd);
     createLinePanel(lineCd);
     updateSelectedLinePlaceholder();
-    drawSelectedLines();
 }
 
 function removeSelectedLine(lineCd) {
@@ -303,17 +348,11 @@ function removeSelectedLine(lineCd) {
     selectedLines = selectedLines.filter(code => code !== lineCd);
     const panel = ui.selectedLineList.querySelector(`.selected-line-item[data-line-cd="${lineCd}"]`);
     if (panel) panel.remove();
-    drawSelectedLines();
     drawRoutes();
 }
 
 function drawSelectedLines() {
     clearLineLayer();
-    const overlay = document.getElementById('line-layer');
-    if (!overlay) return;
-
-    const drawnStations = new Set();
-    selectedLines.forEach(lineCd => drawFullLine(lineCd, overlay, drawnStations));
 }
 
 function drawRoutes() {
@@ -324,7 +363,7 @@ function drawRoutes() {
     selectedLines.forEach(lineCd => {
         const panel = linePanels[lineCd];
         if (panel?.routePath) {
-            drawRoutePath(panel.routePath, lineCd, overlay);
+            drawRoutePath(panel.routePath, lineCd, overlay, panel.color, panel.width);
         }
     });
 }
@@ -346,32 +385,31 @@ function drawLinePanelRoute(lineCd, startCd, endCd) {
     drawRoutes();
 }
 
-function drawRoutePath(path, lineCd, overlay) {
+function drawRoutePath(path, lineCd, overlay, color, strokeWidth) {
     const points = path.map(cd => {
         const st = stationsData[cd];
         return project(st.lon, st.lat);
     });
 
-    let color = linesData[lineCd].color;
-    if (!color.startsWith('#')) color = '#' + color;
+    if (!color) {
+        color = linesData[lineCd].color;
+        if (!color.startsWith('#')) color = '#' + color;
+    }
 
     const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     polyline.setAttribute('points', points.map(p => `${p.x},${p.y}`).join(' '));
     polyline.setAttribute('class', 'rail-route');
+    polyline.setAttribute('stroke', color);
+    polyline.setAttribute('stroke-width', strokeWidth || 3);
+    polyline.setAttribute('stroke-linecap', 'round');
+    polyline.setAttribute('stroke-linejoin', 'round');
+    polyline.setAttribute('stroke-dasharray', 'none');
+    polyline.setAttribute('stroke-dashoffset', '0');
     polyline.style.setProperty('--route-color', color);
-
-    let totalLength = 0;
-    for (let i = 1; i < points.length; i++) {
-        const dx = points[i].x - points[i-1].x;
-        const dy = points[i].y - points[i-1].y;
-        totalLength += Math.sqrt(dx*dx + dy*dy);
-    }
-
-    polyline.style.strokeDasharray = totalLength + 50;
-    polyline.style.strokeDashoffset = totalLength + 50;
     overlay.appendChild(polyline);
 
     const tooltip = document.querySelector('.station-tooltip');
+
     path.forEach((cd, index) => {
         const st = stationsData[cd];
         const pt = points[index];
@@ -380,11 +418,15 @@ function drawRoutePath(path, lineCd, overlay) {
         circle.setAttribute('cy', pt.y);
         circle.setAttribute('r', getR());
         circle.setAttribute('class', 'rail-station');
+        circle.setAttribute('fill', color);
+        circle.setAttribute('stroke', 'var(--bg-color)');
+        circle.setAttribute('stroke-width', '0.2');
         circle.style.setProperty('--route-color', color);
         circle.style.animationDelay = `${(index / path.length) * 1.5}s`;
 
         const state = { element: circle, hovered: false };
         stationCircles.push(state);
+        routeCircles.push(state);
 
         circle.addEventListener('mouseenter', (e) => {
             state.hovered = true;
@@ -411,7 +453,8 @@ function drawRoutePath(path, lineCd, overlay) {
 function clearRouteLayer() {
     const overlay = document.getElementById('route-layer');
     if (overlay) overlay.innerHTML = '';
-    stationCircles = [];
+    stationCircles = stationCircles.filter(state => !routeCircles.includes(state));
+    routeCircles = [];
 }
 
 function clearLineLayer() {
@@ -438,6 +481,11 @@ function setupEventListeners() {
     document.getElementById('reset-view-btn').addEventListener('click', () => {
         const svg = ui.mapContainer.querySelector('svg');
         if (svg) resetView(svg);
+    });
+
+    // Sidebar toggle
+    ui.sidebarToggle.addEventListener('click', () => {
+        ui.sidebarWrapper.classList.toggle('collapsed');
     });
 }
 
@@ -497,19 +545,11 @@ function drawRoute(lineCd, startCd, endCd) {
     const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     polyline.setAttribute('points', points.map(p => `${p.x},${p.y}`).join(' '));
     polyline.setAttribute('class', 'rail-route');
+    polyline.style.stroke = color;
+    polyline.style.strokeWidth = '3px';
+    polyline.style.strokeDasharray = 'none';
+    polyline.style.strokeDashoffset = '0';
     polyline.style.setProperty('--route-color', color);
-    
-    // Calculate path length for drawing animation
-    // A rough estimate of length to set dasharray
-    let totalLength = 0;
-    for (let i = 1; i < points.length; i++) {
-        const dx = points[i].x - points[i-1].x;
-        const dy = points[i].y - points[i-1].y;
-        totalLength += Math.sqrt(dx*dx + dy*dy);
-    }
-    
-    polyline.style.strokeDasharray = totalLength + 50;
-    polyline.style.strokeDashoffset = totalLength + 50;
     overlay.appendChild(polyline);
 
     // Draw Stations
