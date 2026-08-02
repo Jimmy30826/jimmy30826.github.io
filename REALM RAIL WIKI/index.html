@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REALM RAIL WIKI</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
+      background: #f8f9fa;
+      color: #202122;
+    }
+
+    .page {
+      max-width: 1260px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #dcdcdc;
+      padding-bottom: 18px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .logo h1 {
+      margin: 0;
+      font-size: 2.2rem;
+      letter-spacing: -0.04em;
+    }
+
+    .logo span {
+      color: #4c4f53;
+      font-size: 0.95rem;
+    }
+
+    .search {
+      width: 100%;
+      max-width: 420px;
+      margin-top: 16px;
+    }
+
+    .search input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #b1b1b1;
+      border-radius: 10px;
+      font-size: 1rem;
+    }
+
+    .subtitle {
+      margin: 24px 0 20px;
+      font-size: 1.05rem;
+      color: #4c4f53;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    .main-column,
+    .side-column {
+      display: grid;
+      gap: 24px;
+    }
+
+    .box {
+      background: #ffffff;
+      border: 1px solid #dcdcdc;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 2px rgba(15, 15, 15, 0.08);
+    }
+
+    .box h2 {
+      margin-top: 0;
+      font-size: 1.15rem;
+      color: #111;
+    }
+
+    .box p,
+    .box li {
+      color: #3b4045;
+      line-height: 1.7;
+    }
+
+    .box ul {
+      padding-left: 20px;
+      margin: 12px 0 0;
+    }
+
+    .box li {
+      margin-bottom: 10px;
+    }
+
+    .card-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .card-item {
+      display: block;
+      padding: 16px 0;
+      border-bottom: 1px solid #ececec;
+      color: #1a1a1a;
+      text-decoration: none;
+    }
+
+    .card-item:last-child {
+      border-bottom: none;
+    }
+
+    .card-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .card-item span {
+      color: #5f6368;
+      font-size: 0.95rem;
+    }
+
+    .footer {
+      margin-top: 32px;
+      color: #5f6368;
+      font-size: 0.95rem;
+      border-top: 1px solid #dcdcdc;
+      padding-top: 18px;
+    }
+
+    @media (max-width: 920px) {
+      .main-column,
+      .side-column {
+        grid-column: span 12;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="logo">
+        <h1>REALM RAIL WIKI</h1>
+        <span>대한민국 철도 정보를 모아둔 위키</span>
+      </div>
+      <div class="search">
+        <input type="search" placeholder="검색어를 입력하세요" aria-label="검색" />
+      </div>
+    </header>
+
+    <p class="subtitle">위키피디아 메인페이지 구조를 참고하여 구성한 철도 정보 위키입니다. 기본 문서, 노선, 열차 종류, 위키 편집 안내를 빠르게 확인하세요.</p>
+
+    <div class="section-grid">
+      <section class="main-column">
+        <div class="box">
+          <h2>주요 사건</h2>
+          <ul class="card-list">
+            <li class="card-item"><strong>새로운 열차 도입</strong><span>2026년 7월, 새로운 고속열차 서비스가 계획 중입니다.</span></li>
+            <li class="card-item"><strong>전철 연장</strong><span>수도권 전철 연장 노선 정보가 계속 업데이트됩니다.</span></li>
+            <li class="card-item"><strong>역사 변경</strong><span>노선 개편 및 주요 역 이름 변경 기록.</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <aside class="side-column">
+        <div class="box">
+          <h2>주요 링크</h2>
+          <ul class="card-list">
+            <li class="card-item"><strong>노선 목록</strong><span>전체 노선과 주요 역 정보를 확인합니다.</span></li>
+            <li class="card-item"><strong>열차 종류</strong><span>고속, 일반, 통근 열차를 분류합니다.</span></li>
+            <li class="card-item"><strong>편집 가이드</strong><span>콘텐츠 작성 규칙 및 문서 편집 방법.</span></li>
+            <li class="card-item"><strong>참고 자료</strong><span>철도 관련 공식 문서 및 역 데이터 원본.</span></li>
+          </ul>
+        </div>
+
+        <div class="box">
+          <h2>새 문서</h2>
+          <ul class="card-list">
+            <li class="card-item"><strong>수서고속철도</strong><span>2026년 최신 개통 일정과 서비스 정보.</span></li>
+            <li class="card-item"><strong>지하철 환승</strong><span>서울 지하철 환승역 정리와 이용 팁.</span></li>
+            <li class="card-item"><strong>철도 용어집</strong><span>전국 철도에서 자주 쓰이는 용어 해설.</span></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+    <footer class="footer">REALM RAIL WIKI는 개인용 철도 위키입니다. 원하는 페이지를 말씀해주시면 바로 추가하겠습니다.</footer>
+  </div>
+</body>
+</html>
