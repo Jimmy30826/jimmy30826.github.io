@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SEIC 서버승강기정보센터 - 승강기 통합 검색 포털</title>
+    <meta name="description" content="서버 승강기 12자리 고유번호(5-5-2) 조회, 승강기 크기, 문 크기, 승강로 길이, 운행속도, 운영주체 및 서버 좌표 검색 서비스" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <!-- Top Announcement Bar -->
+    <aside class="top-notice-bar" aria-label="서버 공지 및 시스템 상태">
+        <div class="notice-inner">
+            <div class="notice-left">
+                <span class="live-indicator">
+                    <span class="pulse-dot"></span>
+                    서버 승강기 API 연동 정상 (mcsapi.kn4u.net/evapi)
+                </span>
+                <span style="color: rgba(255,255,255,0.2);">|</span>
+                <span id="last-sync-time">최근 동기화: 6시간 주기 자동 갱신</span>
+            </div>
+            <div class="notice-right">
+                <button type="button" id="btn-manual-sync" class="btn-sync-trigger">🔄 즉시 동기화</button>
+                <a href="#results-section">승강기 등록 목록</a>
+                <a href="#quick-services">운영주체 안내</a>
+                <a href="https://mcsapi.kn4u.net/evapi" target="_blank" rel="noreferrer">API 엔드포인트</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Navigation Header -->
+    <header class="header">
+        <div class="header-container">
+            <a href="index.html" class="brand" aria-label="서버승강기정보센터 홈">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="3"/>
+                        <path d="M12 3v18"/>
+                        <path d="m8 10-2 2 2 2"/>
+                        <path d="m16 14 2-2-2-2"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-title">
+                        SEIC 서버승강기정보센터
+                        <span class="badge">통합포털</span>
+                    </div>
+                    <span class="brand-sub">Server Elevator Information Center</span>
+                </div>
+            </a>
+
+            <nav aria-label="메인 메뉴">
+                <ul class="nav-links">
+                    <li><a href="#hero-search" class="active">승강기 검색</a></li>
+                    <li><a href="#results-section">운행 목록</a></li>
+                    <li><a href="#quick-services">운영주체 체계</a></li>
+                    <li><a href="#quick-services">승강기 규격 가이드</a></li>
+                </ul>
+            </nav>
+
+            <div class="header-actions">
+                <button class="btn-header-quick" onclick="document.getElementById('search-input').focus(); document.querySelector('[data-tab=id]').click();">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M7 7h.01M7 17h.01M17 7h.01M17 17h.01"/>
+                    </svg>
+                    고유번호 빠른조회
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero & Primary Search Bar Section -->
+    <section class="hero-section" id="hero-search">
+        <div class="hero-container">
+            <div class="hero-pill">
+                <span>🏢 서버 승강기 실시간 API & 메타데이터 포털</span>
+            </div>
+
+            <h1 class="hero-title">
+                서버 내 모든 승강기를 <span>한눈에 검색</span>하세요
+            </h1>
+            <p class="hero-desc">
+                12자리 고유번호(5-5-2), 건물/설치위치명, 운영주체, 속도, 승강기(카) 크기, 문 크기, 승강로 길이를 실시간으로 조회할 수 있습니다.
+            </p>
+
+            <!-- Focal Search Component Wrapper -->
+            <div class="search-container-wrapper">
+                <!-- Search Category Tabs -->
+                <div class="search-tabs" role="tablist">
+                    <button class="search-tab-btn active" data-tab="all" role="tab" aria-selected="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        통합 검색
+                    </button>
+                    <button class="search-tab-btn" data-tab="id" role="tab" aria-selected="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            <path d="M9 9h6v6H9z"/>
+                        </svg>
+                        고유번호 (5-5-2)
+                    </button>
+                    <button class="search-tab-btn" data-tab="building" role="tab" aria-selected="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                        </svg>
+                        건물·운영주체명
+                    </button>
+                    <button class="search-tab-btn" data-tab="coord" role="tab" aria-selected="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        서버 좌표 (X, Z)
+                    </button>
+                    <button class="search-tab-btn" data-tab="specs" role="tab" aria-selected="false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        크기·속도·승강로
+                    </button>
+                </div>
+
+                <!-- Search Bar Form -->
+                <form class="search-form" id="search-form" onsubmit="return false;">
+                    <div class="search-form-row">
+                        <div class="search-input-box">
+                            <div class="search-icon-left">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.3-4.3"/>
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                class="search-input"
+                                id="search-input"
+                                placeholder="고유번호(5-5-2), 건물/위치명, 운영주체, 속도, 크기를 입력하세요"
+                                autocomplete="off"
+                                aria-label="승강기 검색어 입력"
+                            />
+                            <button type="button" class="search-clear-btn" id="search-clear-btn" aria-label="검색어 지우기">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <button type="submit" class="search-submit-btn" id="search-submit-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.3-4.3"/>
+                            </svg>
+                            검색
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Filter Pill Selectors -->
+                <div class="filter-pills-row">
+                    <div class="filter-pill-group">
+                        <span>운행상태:</span>
+                        <select class="filter-select" id="status-filter" aria-label="운행상태 필터">
+                            <option value="all">전체 상태</option>
+                            <option value="normal">정상운행 (🟢)</option>
+                            <option value="test">시험운행/테스트 (-99) (🟣)</option>
+                            <option value="inspecting">점검·보수중 (🟡)</option>
+                            <option value="stopped">운행정지 (🔴)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-pill-group">
+                        <span>승강기용도:</span>
+                        <select class="filter-select" id="type-filter" aria-label="승강기용도 필터">
+                            <option value="all">전체 용도</option>
+                            <option value="passenger">승객용 / 전망용</option>
+                            <option value="freight">화물용 / 리프트</option>
+                            <option value="emergency">비상용 / 셔틀</option>
+                            <option value="test">시험운행 / 테스트용</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Recommended / Popular Tags -->
+                <div class="quick-tags-wrap">
+                    <span class="tags-label">인기 검색어:</span>
+                    <button type="button" class="tag-btn" data-query="10131-00316-01">#10131-00316-01</button>
+                    <button type="button" class="tag-btn" data-query="10165-10036-99">#10165-10036-99 (시험용)</button>
+                    <button type="button" class="tag-btn" data-query="중앙역">#중앙역 복합환승센터</button>
+                    <button type="button" class="tag-btn" data-query="센트럴 타워">#센트럴 타워</button>
+                    <button type="button" class="tag-btn" data-query="1200">#1200 m/min</button>
+                    <button type="button" class="tag-btn" data-query="376m">#승강로 376m</button>
+                    <button type="button" class="tag-btn" data-query="시설관리팀">#시설관리팀</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Real-time Counter Banner -->
+    <section class="stats-banner" aria-label="승강기 통계 현황">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-icon-wrap">🏢</div>
+                <div class="stat-info">
+                    <span class="stat-label">등록 승강기 수</span>
+                    <span class="stat-value" id="stat-total-count">7<small>대</small></span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon-wrap">🟢</div>
+                <div class="stat-info">
+                    <span class="stat-label">정상 운행 승강기</span>
+                    <span class="stat-value" id="stat-running-count">6<small>대</small></span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon-wrap">📶</div>
+                <div class="stat-info">
+                    <span class="stat-label">총 운행 층수</span>
+                    <span class="stat-value" id="stat-floors-count">25<small>개 층</small></span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon-wrap">🌐</div>
+                <div class="stat-info">
+                    <span class="stat-label">API & 메타데이터 연동</span>
+                    <span class="stat-value" style="font-size: 1.125rem; color: #10b981;">정상 동기화</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Results & Main Content -->
+    <main class="main-content" id="results-section">
+        <div class="section-header">
+            <div class="section-title-wrap">
+                <h2>
+                    승강기 조회 결과
+                    <span class="result-badge-count" id="result-count">7건</span>
+                </h2>
+                <p>https://mcsapi.kn4u.net/evapi 및 수기 메타데이터가 통합된 승강기 목록입니다. 카드를 클릭하면 상세 정보를 확인할 수 있습니다.</p>
+            </div>
+        </div>
+
+        <!-- Results Card Grid -->
+        <div class="results-grid" id="results-grid">
+            <!-- Injected by JavaScript -->
+        </div>
+
+        <!-- Empty Search State -->
+        <div class="empty-results" id="empty-results" style="display: none;">
+            <div class="empty-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    <line x1="8" y1="11" x2="14" y2="11"/>
+                </svg>
+            </div>
+            <h3 class="empty-title">일치하는 승강기 정보가 없습니다</h3>
+            <p class="empty-desc">승강기 12자리 고유번호(5-5-2), 건물명, 운영주체 또는 서버 좌표를 다시 확인해 주세요.</p>
+            <button class="btn-reset-search" id="btn-reset-search">
+                검색 초기화
+            </button>
+        </div>
+
+        <!-- Quick Service Feature Cards -->
+        <section class="services-section" id="quick-services">
+            <h2 class="services-title">주요 서비스 및 안내</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M7 7h.01M7 17h.01M17 7h.01M17 17h.01"/>
+                        </svg>
+                    </div>
+                    <h3>12자리 고유번호 (5-5-2)</h3>
+                    <p>승강기마다 부여된 `XXXXX-XXXXX-XX` 형태의 고유번호로 위치, 운행 층수 및 규격 스펙을 바로 식별합니다.</p>
+                    <span class="service-link">
+                        부착 위치 안내
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </span>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <h3>운영주체 & 설치위치 관리</h3>
+                    <p>`elevators_meta.json` 파일을 통해 건물명, 운영주체, 속도, 승강기명을 손쉽게 수기 등록하고 관리합니다.</p>
+                    <span class="service-link">
+                        메타데이터 설정
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </span>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polygon points="10 8 16 12 10 16 10 8"/>
+                        </svg>
+                    </div>
+                    <h3>시험운행 승강기 (-99)</h3>
+                    <p>고유번호 끝자리가 `-99`로 끝나는 엘리베이터는 R&D 및 테스트용으로 별도 구분되어 식별 및 관리됩니다.</p>
+                    <span class="service-link">
+                        시험운행 기준
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </span>
+                </div>
+
+                <div class="service-card">
+                    <div class="service-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                    </div>
+                    <h3>REST API 실시간 연동</h3>
+                    <p>`https://mcsapi.kn4u.net/evapi` 엔드포인트를 통해 6시간 주기로 자동 갱신됩니다.</p>
+                    <span class="service-link">
+                        API 사양 확인
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Elevator Detail Modal (승강기 고유번호 & 상세 스펙 모달) -->
+    <div class="modal-backdrop" id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <h3 id="modal-title">승강기 상세 정보 및 스펙</h3>
+                    <p>서버승강기정보센터 API & 메타데이터 공시</p>
+                </div>
+                <button class="modal-close-btn" id="modal-close-btn" aria-label="닫기">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- 12-digit (5-5-2) ID yellow/purple badge style -->
+                <div class="cert-plate">
+                    <div class="cert-plate-left">
+                        <h4>승강기 12자리 고유번호 (5-5-2)</h4>
+                        <div class="cert-id-number" id="modal-cert-id">10131-00316-01</div>
+                    </div>
+                    <div class="cert-plate-right">
+                        <div>서버승강기정보센터</div>
+                        <div style="font-size: 0.6875rem; margin-top: 2px;">SEIC 공식 데이터</div>
+                    </div>
+                </div>
+
+                <table class="cert-table">
+                    <tbody>
+                        <tr>
+                            <th>승강기명</th>
+                            <td colspan="3" id="modal-ev-name" style="font-weight: 700;">-</td>
+                        </tr>
+                        <tr>
+                            <th>설치 건물/장소</th>
+                            <td id="modal-building">-</td>
+                            <th>운행 상태</th>
+                            <td id="modal-status" style="font-weight: 700; color: #2563eb;">-</td>
+                        </tr>
+                        <tr>
+                            <th>설치 위치(좌표)</th>
+                            <td colspan="3" id="modal-location">-</td>
+                        </tr>
+                        <tr>
+                            <th>승강기(카) 크기</th>
+                            <td id="modal-car-dimensions" style="font-weight: 600;">-</td>
+                            <th>문(도어) 크기</th>
+                            <td id="modal-door-dimensions" style="font-weight: 600;">-</td>
+                        </tr>
+                        <tr>
+                            <th>승강로 길이</th>
+                            <td id="modal-hoistway" style="font-weight: 600;">-</td>
+                            <th>운행 속도</th>
+                            <td id="modal-speed" style="font-weight: 600;">-</td>
+                        </tr>
+                        <tr>
+                            <th>운행 구간</th>
+                            <td id="modal-floors">-</td>
+                            <th>용도 / 형식</th>
+                            <td id="modal-type">-</td>
+                        </tr>
+                        <tr>
+                            <th>운영 주체</th>
+                            <td id="modal-manager">-</td>
+                            <th>데이터팩 식별자</th>
+                            <td id="modal-datapack-id" style="font-family: var(--font-mono); font-size: 0.8125rem;">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size: 1rem; font-weight: 700; color: var(--navy-900); margin: 20px 0 10px;">
+                    층별 운행 상세 현황 (Floors)
+                </h4>
+                <table class="cert-table" style="font-size: 0.8125rem;">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%; text-align: center;">층수</th>
+                            <th style="width: 40%;">층 명칭 (Display Name)</th>
+                            <th style="width: 15%; text-align: center;">Y 좌표</th>
+                            <th style="width: 15%; text-align: center;">호출버튼</th>
+                            <th style="width: 15%; text-align: center;">도어설치</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-floor-list-tbody">
+                        <!-- Injected by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-action secondary" id="btn-copy-id">
+                    고유번호 복사
+                </button>
+                <button type="button" class="btn-modal-action primary" onclick="window.print()">
+                    정보 인쇄
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <div class="footer-brand-title">SEIC 서버승강기정보센터</div>
+                    <p class="footer-brand-desc">
+                        서버 내 승강기 실시간 API 데이터와 이용자의 편의를 위해 구축된 통합 공공정보 포털입니다.
+                    </p>
+                </div>
+
+                <div class="footer-links-group">
+                    <div class="footer-col">
+                        <h4>서비스</h4>
+                        <ul>
+                            <li><a href="#hero-search">12자리 고유번호(5-5-2) 조회</a></li>
+                            <li><a href="#results-section">승강기 운행 목록</a></li>
+                            <li><a href="#results-section">승강기 규격 및 속도 검색</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-col">
+                        <h4>API & 기술</h4>
+                        <ul>
+                            <li><a href="https://mcsapi.kn4u.net/evapi" target="_blank" rel="noreferrer">https://mcsapi.kn4u.net/evapi</a></li>
+                            <li><a href="#quick-services">수기 메타데이터 관리</a></li>
+                            <li><a href="#quick-services">시험운행(-99) 표준</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>© 2026 Server Elevator Information Center. All rights reserved.</p>
+                <p>서버 승강기 API (mcsapi.kn4u.net/evapi) & 메타데이터 6시간 주기 자동 동기화 운영중</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

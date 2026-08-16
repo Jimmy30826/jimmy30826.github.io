@@ -1,0 +1,38 @@
+name: Sync Elevator API (Every 6 Hours)
+
+on:
+    schedule:
+        # 매 6시간마다 실행 (00:00, 06:00, 12:00, 18:00 UTC)
+        - cron: '0 */6 * * *'
+    workflow_dispatch: # 수동 실행 트리거 지원
+
+jobs:
+    sync:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: 저장소 체크아웃
+              uses: actions/checkout@v4
+
+            - name: Python 환경 설정
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.10'
+
+            - name: SEIC 승강기 API 동기화 실행
+              run: |
+                  python SEIC/sync_api.py
+
+            - name: 변동사항 커밋 및 푸시
+              run: |
+                  git config user.name "SEIC-SyncBot"
+                  git config user.email "bot@seic.local"
+                  git add SEIC/elevators_meta.json SEIC/evdata_cache.json
+                  if git diff --staged --quiet; then
+                      echo "변동된 승강기 데이터가 없습니다."
+                  else
+                      git commit -m "chore(seic): 6시간 주기 승강기 API 동기화 및 신규 메타데이터 반영"
+                      git push
+                  fi
