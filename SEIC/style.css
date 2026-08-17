@@ -305,6 +305,257 @@ button {
     border-color: var(--primary-border);
 }
 
+/* ---- 관리자 자물쇠 버튼 ---- */
+.btn-admin-lock {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background: var(--slate-100);
+    border: 1.5px solid var(--slate-200);
+    color: var(--slate-500);
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.btn-admin-lock:hover {
+    background: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: var(--warning);
+}
+
+.btn-admin-lock.unlocked {
+    background: #fef9c3;
+    border-color: #fde047;
+    color: #b45309;
+}
+
+/* ---- 관리자 모드 뱃지 ---- */
+.admin-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* ---- 비밀번호 인증 모달 ---- */
+.admin-auth-box {
+    max-width: 420px !important;
+    width: 100%;
+}
+
+.admin-auth-body {
+    padding: 24px 28px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--slate-50);
+    border: 2px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.auth-input-wrap:focus-within {
+    background: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.auth-pw-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 14px 16px;
+    font-size: 1.0625rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.12em;
+    color: var(--slate-900);
+    outline: none;
+}
+
+.auth-pw-input::placeholder {
+    font-family: var(--font-main);
+    letter-spacing: 0;
+    color: var(--slate-400);
+    font-size: 0.9375rem;
+}
+
+.auth-pw-toggle {
+    padding: 0 14px;
+    color: var(--slate-400);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+}
+
+.auth-pw-toggle:hover { color: var(--slate-700); }
+
+.auth-error-msg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--danger);
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    animation: shake 0.35s ease-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px); }
+    40%       { transform: translateX(6px); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+}
+
+/* ---- 편집 모달 ---- */
+.edit-modal-box {
+    max-width: 560px !important;
+    width: 100%;
+}
+
+.edit-modal-body {
+    padding: 24px 28px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.edit-field-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.edit-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--slate-600);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.edit-input {
+    background: var(--slate-50);
+    border: 1.5px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: var(--slate-900);
+    outline: none;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.edit-input:focus {
+    background: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.edit-select {
+    background: var(--slate-50);
+    border: 1.5px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: var(--slate-900);
+    outline: none;
+    transition: var(--transition);
+    cursor: pointer;
+    width: 100%;
+}
+
+.edit-select:focus {
+    background: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.edit-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--slate-500);
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    line-height: 1.5;
+}
+
+.edit-notice svg { flex-shrink: 0; margin-top: 1px; }
+
+.edit-notice code {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    background: var(--slate-200);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: var(--slate-700);
+}
+
+/* ---- 카드 편집 버튼 (관리자 모드 시 표시) ---- */
+.ev-card .btn-edit-card {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--warning);
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    transition: var(--transition);
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.ev-card .btn-edit-card:hover {
+    background: #fde68a;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+body.admin-mode .ev-card .btn-edit-card {
+    display: inline-flex;
+}
+
+/* 관리자 모드일 때 헤더에 미세한 황금 테두리 */
+body.admin-mode .header {
+    border-bottom-color: #fde68a;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 2px 0 0 #fde68a;
+}
+
 /* ==========================================================================
    Hero & Search Section
    ========================================================================== */
@@ -659,6 +910,127 @@ button {
     background: var(--primary-light);
     color: var(--primary);
     border-color: var(--primary-border);
+}
+
+/* Coordinate Split Input Row */
+.coord-row {
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.coord-inputs-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.coord-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.coord-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--slate-500);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.coord-input {
+    background: var(--slate-50);
+    border: 2px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    font-size: 1.0625rem;
+    font-weight: 500;
+    color: var(--slate-900);
+    font-family: var(--font-mono);
+    outline: none;
+    transition: var(--transition);
+    width: 100%;
+    -moz-appearance: textfield;
+}
+
+.coord-input::-webkit-outer-spin-button,
+.coord-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
+
+.coord-input:focus {
+    background: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.coord-input::placeholder {
+    color: var(--slate-400);
+    font-weight: 400;
+    font-family: var(--font-mono);
+}
+
+.coord-separator {
+    color: var(--slate-300);
+    display: flex;
+    align-items: center;
+    padding-top: 20px;
+    flex-shrink: 0;
+}
+
+.coord-hint-inline {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    color: var(--slate-400);
+    padding-top: 22px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.coord-hint-inline svg {
+    flex-shrink: 0;
+    stroke: var(--slate-400);
+}
+
+/* Search Hint Bar (per-tab inline hint) */
+.search-hint-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 9px 14px;
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+    color: var(--info);
+    line-height: 1.5;
+    animation: fadeIn 0.18s ease-out;
+}
+
+.search-hint-bar svg {
+    flex-shrink: 0;
+    stroke: var(--info);
+}
+
+.search-hint-bar strong {
+    font-weight: 700;
+    color: var(--primary-dark);
+}
+
+.search-hint-bar code {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background: rgba(2, 132, 199, 0.1);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--primary-dark);
 }
 
 /* Quick Filter Tags */

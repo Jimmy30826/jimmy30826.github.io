@@ -199,6 +199,98 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let elevatorList = [];
     let customMetadata = {};
+    let currentEditSerial = null;
+
+    const ADMIN_DEFAULT_PASSWORD = 'SEIC2026!';
+    const ADMIN_SESSION_KEY = 'seic_admin_session';
+    const SESSION_METADATA_KEY = 'seic_session_metadata';
+    const STATUS_LABELS = {
+        normal: '정상운행',
+        inspecting: '점검·보수중',
+        stopped: '운행정지',
+        test: '시험운행 (테스트)'
+    };
+
+    function getStoredSessionMetadata() {
+        try {
+            const raw = localStorage.getItem(SESSION_METADATA_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (error) {
+            console.warn('세션 메타데이터 복구 실패:', error);
+            return {};
+        }
+    }
+
+    function saveStoredSessionMetadata(metadata) {
+        localStorage.setItem(SESSION_METADATA_KEY, JSON.stringify(metadata || {}));
+    }
+
+    async function persistMetadataToFile(metadata) {
+        try {
+            const payload = {
+                event_type: 'admin_metadata_update',
+                metadata: metadata || {}
+            };
+
+            const form = new FormData();
+            form.append('payload', JSON.stringify(payload));
+
+            const response = await fetch('https://api.github.com/repos/jimmy30826/jimmy30826.github.io/actions/workflows/admin_metadata_update.yml/dispatches', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/vnd.github+json',
+                    'Authorization': 'Bearer ' + (localStorage.getItem('seic_github_token') || ''),
+                    'X-GitHub-Api-Version': '2022-11-28'
+                },
+                body: JSON.stringify({
+                    ref: 'main',
+                    inputs: {
+                        metadata_json: JSON.stringify(metadata || {})
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`${response.status}: ${text}`);
+            }
+
+            console.info('GitHub Actions로 메타데이터 반영 요청 전송 완료');
+            return true;
+        } catch (error) {
+            console.error('GitHub Actions 저장 실패:', error);
+            alert('GitHub Actions 저장 요청이 실패했습니다.\n\nGitHub 토큰이 설정되어 있고 저장소의 Actions 권한이 허용되어 있어야 합니다.');
+            return false;
+        }
+    }
+
+    function getAdminPassword() {
+        const override = localStorage.getItem('seic_admin_password_override');
+        return override && override.trim() ? override.trim() : ADMIN_DEFAULT_PASSWORD;
+    }
+
+    function setAdminUnlocked(isUnlocked) {
+        localStorage.setItem(ADMIN_SESSION_KEY, String(Boolean(isUnlocked)));
+        document.body.classList.toggle('admin-mode', isUnlocked);
+
+        const adminBadge = document.getElementById('admin-mode-badge');
+        const lockBtn = document.getElementById('btn-admin-lock');
+        const lockedIcon = document.getElementById('lock-icon-locked');
+        const unlockedIcon = document.getElementById('lock-icon-unlocked');
+
+        if (adminBadge) adminBadge.style.display = isUnlocked ? 'inline-flex' : 'none';
+        if (lockBtn) {
+            lockBtn.classList.toggle('unlocked', isUnlocked);
+            lockBtn.setAttribute('aria-label', isUnlocked ? '관리자 모드 해제' : '관리자 인증');
+            lockBtn.title = isUnlocked ? '관리자 모드 해제' : '관리자 모드';
+        }
+        if (lockedIcon) lockedIcon.style.display = isUnlocked ? 'none' : 'inline';
+        if (unlockedIcon) unlockedIcon.style.display = isUnlocked ? 'inline' : 'none';
+    }
+
+    function isAdminUnlocked() {
+        return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+    }
 
     // DOM Elements
     const searchInput = document.getElementById('search-input');
@@ -214,8 +306,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalBackdrop = document.getElementById('detail-modal');
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const manualSyncBtn = document.getElementById('btn-manual-sync');
+    const adminAuthModal = document.getElementById('admin-auth-modal');
+    const adminAuthCloseBtn = document.getElementById('admin-auth-close-btn');
+    const adminAuthCancelBtn = document.getElementById('admin-auth-cancel-btn');
+    const adminAuthConfirmBtn = document.getElementById('admin-auth-confirm-btn');
+    const adminPwInput = document.getElementById('admin-pw-input');
+    const authPwToggleBtn = document.getElementById('auth-pw-toggle');
+    const authErrorMsg = document.getElementById('auth-error-msg');
+    const editModal = document.getElementById('edit-modal');
+    const editModalCloseBtn = document.getElementById('edit-modal-close-btn');
+    const editModalCancelBtn = document.getElementById('edit-modal-cancel-btn');
+    const editModalSaveBtn = document.getElementById('edit-modal-save-btn');
+    const btnAdminLock = document.getElementById('btn-admin-lock');
 
-    let currentTab = 'all';
+    setAdminUnlocked(isAdminUnlocked());
+
+    // 좌표 탭 전용 DOM 요소
+    const searchRowDefault = document.getElementById('search-row-default');
+    const searchRowCoord   = document.getElementById('search-row-coord');
+    const coordXInput      = document.getElementById('coord-x-input');
+    const coordZInput      = document.getElementById('coord-z-input');
+    const searchHintBar    = document.getElementById('search-hint-bar');
+
+    // 탭별 힌트 메시지 맵
+    const TAB_HINTS = {
+        id: {
+            icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>`,
+            html: `<strong>형식:</strong> <code>XXXXX-XXXXX-XX</code> (5-5-2 자리, 하이픈 포함/제외 모두 인식) &nbsp;·&nbsp; 예: <code>10131-00316-01</code>&nbsp; 또는 시험기 <code>10165-10036-99</code>`
+        },
+        building: {
+            icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>`,
+            html: `<strong>검색 대상:</strong> 건물·설치 장소명, 승강기명, 운영주체명 &nbsp;·&nbsp; 예: <code>중앙역</code>&nbsp; <code>센트럴 타워</code>&nbsp; <code>시설관리팀</code>`
+        },
+        specs: {
+            icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 4.6a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 .33 1.65 1.65 0 0 0 10.51 1V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+            html: `<strong>검색 가능 항목:</strong> 속도 <code>1200</code>·<code>600 m/min</code>, 승강기(카) 크기 <code>4m</code>·<code>3×4m</code>, 문 크기 <code>2×3m</code>, 승강로 길이 <code>376m</code>`
+        },
+        all: null // 통합 검색은 힌트 미표시
+    };
+
 
     // Parse raw API data and merge with manual metadata (elevators_meta.json)
     function parseApiData(rawJson, metaJson) {
@@ -333,11 +462,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 8. 상태 처리 (-99 시험운행 특수 처리)
             let status = 'normal';
-            let statusText = '정상운행';
+            let statusText = STATUS_LABELS.normal;
 
-            if (isTest) {
+            if (meta.status && typeof meta.status === 'string') {
+                status = meta.status;
+                statusText = STATUS_LABELS[meta.status] || STATUS_LABELS.normal;
+            } else if (isTest) {
                 status = 'test';
-                statusText = '시험운행 (테스트)';
+                statusText = STATUS_LABELS.test;
             }
 
             parsed.push({
@@ -375,18 +507,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch data from live API & elevators_meta.json
     async function loadData() {
+        const storedSessionMetadata = getStoredSessionMetadata();
+        let loadedMetadata = fallbackMetadata;
+
         // 1. Fetch metadata JSON
         try {
             const metaRes = await fetch(META_URL, { cache: 'no-cache' });
             if (metaRes.ok) {
-                customMetadata = await metaRes.json();
-            } else {
-                customMetadata = fallbackMetadata;
+                loadedMetadata = await metaRes.json();
             }
         } catch (err) {
             console.warn('Metadata JSON fetch failed, using fallback metadata:', err);
-            customMetadata = fallbackMetadata;
         }
+
+        customMetadata = {
+            ...loadedMetadata,
+            ...storedSessionMetadata
+        };
 
         // 2. Fetch live API data
         try {
@@ -427,6 +564,148 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function openAdminAuthModal() {
+        if (!adminAuthModal) return;
+        adminAuthModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => adminPwInput && adminPwInput.focus(), 50);
+    }
+
+    function closeAdminAuthModal() {
+        if (!adminAuthModal) return;
+        adminAuthModal.classList.remove('active');
+        if (document.getElementById('detail-modal') && document.getElementById('detail-modal').classList.contains('active')) {
+            return;
+        }
+        document.body.style.overflow = '';
+        if (adminPwInput) {
+            adminPwInput.value = '';
+        }
+        if (authErrorMsg) {
+            authErrorMsg.style.display = 'none';
+        }
+    }
+
+    function handleAdminAuth() {
+        if (!adminPwInput) return;
+        const inputVal = adminPwInput.value.trim();
+        if (inputVal === '' || inputVal !== getAdminPassword()) {
+            if (authErrorMsg) {
+                authErrorMsg.style.display = 'flex';
+            }
+            adminPwInput.focus();
+            return;
+        }
+
+        setAdminUnlocked(true);
+        closeAdminAuthModal();
+    }
+
+    if (btnAdminLock) {
+        btnAdminLock.addEventListener('click', () => {
+            if (isAdminUnlocked()) {
+                setAdminUnlocked(false);
+                return;
+            }
+            openAdminAuthModal();
+        });
+    }
+
+    if (adminAuthCloseBtn) adminAuthCloseBtn.addEventListener('click', closeAdminAuthModal);
+    if (adminAuthCancelBtn) adminAuthCancelBtn.addEventListener('click', closeAdminAuthModal);
+    if (adminAuthConfirmBtn) adminAuthConfirmBtn.addEventListener('click', handleAdminAuth);
+    if (adminPwInput) {
+        adminPwInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                handleAdminAuth();
+            }
+        });
+    }
+    if (authPwToggleBtn) {
+        authPwToggleBtn.addEventListener('click', () => {
+            if (!adminPwInput) return;
+            const showPw = adminPwInput.type === 'password';
+            adminPwInput.type = showPw ? 'text' : 'password';
+            const eyeShow = document.getElementById('pw-eye-show');
+            const eyeHide = document.getElementById('pw-eye-hide');
+            if (eyeShow) eyeShow.style.display = showPw ? 'none' : 'inline';
+            if (eyeHide) eyeHide.style.display = showPw ? 'inline' : 'none';
+        });
+    }
+
+    function closeEditModal() {
+        if (!editModal) return;
+        editModal.classList.remove('active');
+        if (!document.getElementById('detail-modal') || !document.getElementById('detail-modal').classList.contains('active')) {
+            document.body.style.overflow = '';
+        }
+        currentEditSerial = null;
+    }
+
+    function openEditModal(serial) {
+        if (!serial || !editModal) return;
+
+        const item = elevatorList.find(e => e.serial === serial);
+        if (!item) return;
+
+        const meta = customMetadata[serial] || {};
+        currentEditSerial = serial;
+
+        document.getElementById('edit-modal-serial').textContent = serial;
+        document.getElementById('edit-name').value = meta.name || item.name || '';
+        document.getElementById('edit-building').value = meta.building || item.building || '';
+        document.getElementById('edit-manager').value = meta.manager || item.manager || '';
+        document.getElementById('edit-type').value = meta.type || item.type || '승객용 / 일반';
+        document.getElementById('edit-status').value = meta.status || item.status || 'normal';
+
+        editModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    if (editModalCloseBtn) editModalCloseBtn.addEventListener('click', closeEditModal);
+    if (editModalCancelBtn) editModalCancelBtn.addEventListener('click', closeEditModal);
+    if (editModalSaveBtn) {
+        editModalSaveBtn.addEventListener('click', async () => {
+            if (!currentEditSerial) return;
+
+            const serial = currentEditSerial;
+            const item = elevatorList.find(e => e.serial === serial);
+            if (!item) return;
+
+            const nextMeta = customMetadata[serial] || {};
+            nextMeta.name = document.getElementById('edit-name').value.trim() || item.name;
+            nextMeta.building = document.getElementById('edit-building').value.trim() || item.building;
+            nextMeta.manager = document.getElementById('edit-manager').value.trim() || item.manager;
+            nextMeta.type = document.getElementById('edit-type').value || item.type;
+            nextMeta.status = document.getElementById('edit-status').value || item.status || 'normal';
+
+            customMetadata[serial] = nextMeta;
+            const saved = await persistMetadataToFile(customMetadata);
+            if (!saved) {
+                return;
+            }
+
+            elevatorList = elevatorList.map(entry => {
+                if (entry.serial !== serial) return entry;
+                const statusValue = nextMeta.status || entry.status || 'normal';
+                const statusText = STATUS_LABELS[statusValue] || STATUS_LABELS.normal;
+                return {
+                    ...entry,
+                    name: nextMeta.name || entry.name,
+                    building: nextMeta.building || entry.building,
+                    manager: nextMeta.manager || entry.manager,
+                    type: nextMeta.type || entry.type,
+                    status: statusValue,
+                    statusText: statusText,
+                    isTest: entry.isTest || statusValue === 'test'
+                };
+            });
+
+            filterAndRender();
+            closeEditModal();
+        });
+    }
+
     // Set 6-hour periodic polling interval
     setInterval(loadData, SYNC_INTERVAL_MS);
 
@@ -445,6 +724,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (statFloors) statFloors.innerHTML = `${totalFloors}<small>개 층</small>`;
     }
 
+    let currentTab = 'all';
+
+    // 탭별 UI 전환 헬퍼
+    function applyTabUI(tab) {
+        const isCoord = tab === 'coord';
+
+        // 입력 행 전환
+        if (searchRowDefault) searchRowDefault.style.display = isCoord ? 'none' : 'flex';
+        if (searchRowCoord)   searchRowCoord.style.display   = isCoord ? 'flex' : 'none';
+
+        // 힌트바 업데이트
+        if (searchHintBar) {
+            const hint = TAB_HINTS[tab];
+            if (hint) {
+                searchHintBar.innerHTML = hint.icon + '&nbsp;' + hint.html;
+                searchHintBar.style.display = 'flex';
+            } else if (isCoord) {
+                searchHintBar.style.display = 'none';
+            } else {
+                searchHintBar.style.display = 'none';
+            }
+        }
+
+        // placeholder 업데이트 (기본 검색창)
+        switch (tab) {
+            case 'id':
+                if (searchInput) searchInput.placeholder = '승강기 고유번호 (예: 10131-00316-01, 10165-10036-99)';
+                break;
+            case 'building':
+                if (searchInput) searchInput.placeholder = '건물명 또는 운영주체를 입력하세요 (예: 중앙역, 센트럴 타워, 관리단)';
+                break;
+            case 'specs':
+                if (searchInput) searchInput.placeholder = '속도, 크기, 문 크기, 승강로를 검색하세요 (예: 1200, 600 m/min, 4m, 376m)';
+                break;
+            default:
+                if (searchInput) searchInput.placeholder = '고유번호(5-5-2), 건물/위치명, 운영주체, 속도, 크기를 입력하세요';
+        }
+    }
+
     // Tab switching
     searchTabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -452,24 +770,13 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
 
-            switch (currentTab) {
-                case 'id':
-                    searchInput.placeholder = "승강기 고유번호 (예: 10131-00316-01, 10165-10036-99)";
-                    break;
-                case 'building':
-                    searchInput.placeholder = "건물명 또는 운영주체를 입력하세요 (예: 중앙역, 센트럴 타워, 관리단)";
-                    break;
-                case 'coord':
-                    searchInput.placeholder = "서버 좌표를 입력하세요 (예: -134, 316, 33, -154)";
-                    break;
-                case 'specs':
-                    searchInput.placeholder = "속도, 크기, 문 크기, 승강로를 검색하세요 (예: 1200, 600 m/min, 4m, 376m)";
-                    break;
-                default:
-                    searchInput.placeholder = "고유번호(5-5-2), 건물/위치명, 운영주체, 속도, 크기를 입력하세요";
-            }
+            applyTabUI(currentTab);
 
-            searchInput.focus();
+            if (currentTab === 'coord') {
+                if (coordXInput) coordXInput.focus();
+            } else {
+                if (searchInput) searchInput.focus();
+            }
             filterAndRender();
         });
     });
@@ -490,6 +797,10 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.focus();
         filterAndRender();
     });
+
+    // 좌표 입력칸 리스너
+    if (coordXInput) coordXInput.addEventListener('input', filterAndRender);
+    if (coordZInput) coordZInput.addEventListener('input', filterAndRender);
 
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -526,6 +837,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedStatus = statusFilter ? statusFilter.value : 'all';
         const selectedType = typeFilter ? typeFilter.value : 'all';
 
+        // 좌표 탭 전용: X/Z 입력값
+        const coordXVal = coordXInput ? coordXInput.value.trim() : '';
+        const coordZVal = coordZInput ? coordZInput.value.trim() : '';
+        const hasCoordQuery = coordXVal !== '' || coordZVal !== '';
+
         const filtered = elevatorList.filter(item => {
             // Status filter (normal, test, inspecting, stopped)
             if (selectedStatus !== 'all' && item.status !== selectedStatus) {
@@ -538,6 +854,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (selectedType === 'freight' && !item.type.includes('화물용')) return false;
                 if (selectedType === 'emergency' && !item.type.includes('비상용') && !item.type.includes('셔틀')) return false;
                 if (selectedType === 'test' && !item.isTest) return false;
+            }
+
+            if (currentTab === 'coord') {
+                // 좌표 탭: X/Z 칸 값으로 정밀 필터링
+                if (!hasCoordQuery) return true;
+                const cx = item.coords.x;
+                const cz = item.coords.z;
+                const xMatch = coordXVal === '' || String(cx) === coordXVal;
+                const zMatch = coordZVal === '' || String(cz) === coordZVal;
+                return xMatch && zMatch;
             }
 
             if (!query) return true;
@@ -553,8 +879,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.name.toLowerCase().includes(query) ||
                     item.manager.toLowerCase().includes(query)
                 );
-            } else if (currentTab === 'coord') {
-                return item.location.toLowerCase().includes(query);
             } else if (currentTab === 'specs') {
                 return (
                     item.speed.toLowerCase().includes(query) ||
@@ -658,6 +982,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="ev-card-foot">
                         <span class="ev-manager-text">운영: ${item.manager}</span>
+                        <button type="button" class="btn-edit-card" data-serial="${item.serial}" aria-label="${item.serial} 정보 수정">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            수정
+                        </button>
                         <span class="btn-detail">
                             상세 스펙 조회
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -668,6 +996,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </article>
             `;
         }).join('');
+
+        document.querySelectorAll('.btn-edit-card').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                openEditModal(btn.dataset.serial);
+            });
+        });
 
         // Modal triggers
         document.querySelectorAll('.ev-card').forEach(card => {
@@ -786,10 +1121,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {
             searchInput.value = '';
+            if (coordXInput) coordXInput.value = '';
+            if (coordZInput) coordZInput.value = '';
             if (statusFilter) statusFilter.value = 'all';
             if (typeFilter) typeFilter.value = 'all';
             searchClearBtn.style.display = 'none';
-            searchTabBtns[0].click();
+            currentTab = 'all';
+            searchTabBtns.forEach(b => b.classList.remove('active'));
+            searchTabBtns[0].classList.add('active');
+            applyTabUI('all');
             filterAndRender();
         });
     }

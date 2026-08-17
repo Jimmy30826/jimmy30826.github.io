@@ -67,6 +67,22 @@
                     </svg>
                     고유번호 빠른조회
                 </button>
+                <!-- 관리자 모드 뱃지 (인증 후 표시) -->
+                <span class="admin-mode-badge" id="admin-mode-badge" style="display:none;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    관리자 모드
+                </span>
+                <!-- 자물쇠 버튼 -->
+                <button class="btn-admin-lock" id="btn-admin-lock" aria-label="관리자 인증" title="관리자 모드">
+                    <svg id="lock-icon-locked" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <svg id="lock-icon-unlocked" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:none;">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </header>
@@ -129,7 +145,8 @@
 
                 <!-- Search Bar Form -->
                 <form class="search-form" id="search-form" onsubmit="return false;">
-                    <div class="search-form-row">
+                    <!-- 일반 검색 행 (통합/고유번호/건물/규격 탭) -->
+                    <div class="search-form-row" id="search-row-default">
                         <div class="search-input-box">
                             <div class="search-icon-left">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -161,6 +178,51 @@
                             검색
                         </button>
                     </div>
+
+                    <!-- 좌표 분리 검색 행 (서버 좌표 탭 전용) -->
+                    <div class="search-form-row coord-row" id="search-row-coord" style="display:none;">
+                        <div class="coord-inputs-wrap">
+                            <div class="coord-field">
+                                <label class="coord-label" for="coord-x-input">X 좌표</label>
+                                <input
+                                    type="number"
+                                    class="coord-input"
+                                    id="coord-x-input"
+                                    placeholder="예: -134"
+                                    autocomplete="off"
+                                    aria-label="X 좌표 입력"
+                                />
+                            </div>
+                            <div class="coord-separator">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                            </div>
+                            <div class="coord-field">
+                                <label class="coord-label" for="coord-z-input">Z 좌표</label>
+                                <input
+                                    type="number"
+                                    class="coord-input"
+                                    id="coord-z-input"
+                                    placeholder="예: 316"
+                                    autocomplete="off"
+                                    aria-label="Z 좌표 입력"
+                                />
+                            </div>
+                            <div class="coord-hint-inline">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+                                X·Z 중 하나만 입력해도 검색됩니다. Y 좌표는 층별 Y값으로 확인하세요.
+                            </div>
+                        </div>
+                        <button type="submit" class="search-submit-btn" id="search-submit-coord-btn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.3-4.3"/>
+                            </svg>
+                            검색
+                        </button>
+                    </div>
+
+                    <!-- 탭별 인라인 검색 형식 힌트 -->
+                    <div class="search-hint-bar" id="search-hint-bar" style="display:none;"></div>
                 </form>
 
                 <!-- Filter Pill Selectors -->
@@ -433,6 +495,129 @@
                 </button>
                 <button type="button" class="btn-modal-action primary" onclick="window.print()">
                     정보 인쇄
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 관리자 비밀번호 인증 모달 ===== -->
+    <div class="modal-backdrop" id="admin-auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+        <div class="modal-box admin-auth-box">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <h3 id="auth-modal-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-3px; margin-right:6px;">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        관리자 인증
+                    </h3>
+                    <p>SEIC 관리자 비밀번호를 입력하세요.</p>
+                </div>
+                <button class="modal-close-btn" id="admin-auth-close-btn" aria-label="닫기">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body admin-auth-body">
+                <div class="auth-input-wrap">
+                    <input
+                        type="password"
+                        id="admin-pw-input"
+                        class="auth-pw-input"
+                        placeholder="비밀번호 입력"
+                        autocomplete="current-password"
+                        maxlength="32"
+                    />
+                    <button type="button" class="auth-pw-toggle" id="auth-pw-toggle" aria-label="비밀번호 표시/숨기기">
+                        <svg id="pw-eye-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg id="pw-eye-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </button>
+                </div>
+                <div class="auth-error-msg" id="auth-error-msg" style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    비밀번호가 올바르지 않습니다.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-action secondary" id="admin-auth-cancel-btn">취소</button>
+                <button type="button" class="btn-modal-action primary" id="admin-auth-confirm-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    인증
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 승강기 메타데이터 편집 모달 ===== -->
+    <div class="modal-backdrop" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+        <div class="modal-box edit-modal-box">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <h3 id="edit-modal-title">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-3px; margin-right:6px;">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        승강기 정보 편집
+                    </h3>
+                    <p id="edit-modal-serial" style="font-family: var(--font-mono); font-size:0.8125rem; color: var(--slate-500);">-</p>
+                </div>
+                <button class="modal-close-btn" id="edit-modal-close-btn" aria-label="닫기">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body edit-modal-body">
+                <div class="edit-field-grid">
+                    <div class="edit-field">
+                        <label class="edit-label" for="edit-name">승강기명</label>
+                        <input type="text" id="edit-name" class="edit-input" placeholder="예: 중앙역 광장 1호기" />
+                    </div>
+                    <div class="edit-field">
+                        <label class="edit-label" for="edit-building">설치 건물/장소</label>
+                        <input type="text" id="edit-building" class="edit-input" placeholder="예: 중앙역 복합환승센터" />
+                    </div>
+                    <div class="edit-field">
+                        <label class="edit-label" for="edit-manager">운영주체</label>
+                        <input type="text" id="edit-manager" class="edit-input" placeholder="예: 시설관리팀" />
+                    </div>
+                    <div class="edit-field">
+                        <label class="edit-label" for="edit-type">용도/형식</label>
+                        <select id="edit-type" class="edit-select">
+                            <option value="승객용 / 일반">승객용 / 일반</option>
+                            <option value="승객용 / 전망용">승객용 / 전망용</option>
+                            <option value="승객용 / 고속">승객용 / 고속</option>
+                            <option value="승객용 / 셔틀">승객용 / 셔틀</option>
+                            <option value="화물용 / 리프트">화물용 / 리프트</option>
+                            <option value="비상용 / 셔틀">비상용 / 셔틀</option>
+                            <option value="시험운행 / 테스트용">시험운행 / 테스트용</option>
+                        </select>
+                    </div>
+                    <div class="edit-field">
+                        <label class="edit-label" for="edit-status">운행상태</label>
+                        <select id="edit-status" class="edit-select">
+                            <option value="normal">🟢 정상운행</option>
+                            <option value="inspecting">🟡 점검·보수중</option>
+                            <option value="stopped">🔴 운행정지</option>
+                            <option value="test">🟣 시험운행 (테스트)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="edit-notice">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+                    저장은 GitHub Actions를 통해 <code>elevators_meta.json</code>에 반영됩니다. 저장소 권한이 활성화되어 있어야 합니다.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-action secondary" id="edit-modal-cancel-btn">취소</button>
+                <button type="button" class="btn-modal-action primary" id="edit-modal-save-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    변경 저장
                 </button>
             </div>
         </div>

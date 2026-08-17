@@ -1,0 +1,42 @@
+name: Admin Metadata Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      metadata_json:
+        description: "승강기 메타데이터 JSON 문자열. 예: {\"10131-00316-01\": {\"name\": \"테스트\"}}"
+        required: true
+        type: string
+
+jobs:
+  update-metadata:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Apply admin metadata update
+        env:
+          METADATA_JSON: ${{ github.event.inputs.metadata_json }}
+        run: |
+          python SEIC/admin_metadata_update.py
+
+      - name: Commit and push metadata changes
+        run: |
+          git config user.name "SEIC Admin"
+          git config user.email "admin@seic.local"
+          git add SEIC/elevators_meta.json
+          if git diff --cached --quiet; then
+            echo "No metadata changes detected."
+          else
+            git commit -m "chore(seic): admin metadata update"
+            git push
+          fi
