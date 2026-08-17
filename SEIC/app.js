@@ -7,6 +7,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const API_URL = 'https://mcsapi.kn4u.net/evapi';
     const META_URL = 'elevators_meta.json';
+    const GITHUB_REPO = 'jimmy30826/jimmy30826.github.io';
+    const GITHUB_BRANCH = 'main';
     const SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6시간 주기
 
     // undefined / null 안전 처리 헬퍼 함수
@@ -204,6 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ADMIN_DEFAULT_PASSWORD = 'SEIC2026!';
     const ADMIN_SESSION_KEY = 'seic_admin_session';
     const SESSION_METADATA_KEY = 'seic_session_metadata';
+    const PENDING_METADATA_KEY = 'seic_pending_metadata';
+    const SYNC_CYCLE_ANCHOR_KEY = 'seic_cycle_anchor';
     const STATUS_LABELS = {
         normal: '정상운행',
         inspecting: '점검·보수중',
@@ -225,27 +229,64 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(SESSION_METADATA_KEY, JSON.stringify(metadata || {}));
     }
 
-    async function persistMetadataToFile(metadata) {
+    function savePendingMetadata(metadata) {
+        const payload = {
+            updatedAt: new Date().toISOString(),
+            metadata: metadata || {}
+        };
+        localStorage.setItem(PENDING_METADATA_KEY, JSON.stringify(payload));
+    }
+
+    function getPendingMetadata() {
         try {
-            const payload = {
-                event_type: 'admin_metadata_update',
-                metadata: metadata || {}
-            };
+            const raw = localStorage.getItem(PENDING_METADATA_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+            console.warn('대기 메타데이터 복구 실패:', error);
+            return null;
+        }
+    }
 
-            const form = new FormData();
-            form.append('payload', JSON.stringify(payload));
+    function clearPendingMetadata() {
+        localStorage.removeItem(PENDING_METADATA_KEY);
+    }
 
-            const response = await fetch('https://api.github.com/repos/jimmy30826/jimmy30826.github.io/actions/workflows/admin_metadata_update.yml/dispatches', {
+    function getCycleAnchor() {
+        const raw = localStorage.getItem(SYNC_CYCLE_ANCHOR_KEY);
+        return raw ? new Date(raw).getTime() : Date.now();
+    }
+
+    function updateCycleAnchor(now = new Date()) {
+        localStorage.setItem(SYNC_CYCLE_ANCHOR_KEY, now.toISOString());
+        localStorage.setItem('seic_last_sync', now.toISOString());
+    }
+
+    function getGithubToken() {
+        const token = localStorage.getItem('seic_github_token');
+        return token && token.trim() ? token.trim() : '';
+    }
+
+    async function dispatchMetadataSync({ mode, commitMessage, metadata }) {
+        const token = getGithubToken();
+        if (!token) {
+            console.info('GitHub 토큰이 없어 메타데이터 커밋을 전송하지 않았습니다.');
+            return false;
+        }
+
+        try {
+            const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/admin_metadata_update.yml/dispatches`, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/vnd.github+json',
-                    'Authorization': 'Bearer ' + (localStorage.getItem('seic_github_token') || ''),
+                    'Authorization': `Bearer ${token}`,
                     'X-GitHub-Api-Version': '2022-11-28'
                 },
                 body: JSON.stringify({
-                    ref: 'main',
+                    ref: GITHUB_BRANCH,
                     inputs: {
-                        metadata_json: JSON.stringify(metadata || {})
+                        metadata_json: JSON.stringify(metadata || {}),
+                        sync_mode: mode || 'scheduled',
+                        commit_message: commitMessage || 'chore(seic): metadata sync'
                     }
                 })
             });
@@ -255,12 +296,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`${response.status}: ${text}`);
             }
 
-            console.info('GitHub Actions로 메타데이터 반영 요청 전송 완료');
             return true;
         } catch (error) {
-            console.error('GitHub Actions 저장 실패:', error);
-            alert('GitHub Actions 저장 요청이 실패했습니다.\n\nGitHub 토큰이 설정되어 있고 저장소의 Actions 권한이 허용되어 있어야 합니다.');
+            console.error('메타데이터 GitHub 커밋 전송 실패:', error);
             return false;
+        }
+    }
+
+    async function flushPendingMetadata() {
+        const pending = getPendingMetadata();
+        if (!pending || !pending.metadata) return;
+
+        const ok = await dispatchMetadataSync({
+            mode: 'scheduled',
+            commitMessage: 'chore(seic): scheduled sync',
+            metadata: pending.metadata
+        });
+
+        if (ok) {
+            console.info('6시간 주기 동기화 큐가 GitHub Actions로 전송되었습니다.');
+            clearPendingMetadata();
+            updateCycleAnchor(new Date());
         }
     }
 
@@ -286,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (lockedIcon) lockedIcon.style.display = isUnlocked ? 'none' : 'inline';
         if (unlockedIcon) unlockedIcon.style.display = isUnlocked ? 'inline' : 'none';
+        syncManualButtonState();
     }
 
     function isAdminUnlocked() {
@@ -319,6 +376,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModalSaveBtn = document.getElementById('edit-modal-save-btn');
     const btnAdminLock = document.getElementById('btn-admin-lock');
 
+    if (manualSyncBtn) {
+        syncManualButtonState();
+    }
     setAdminUnlocked(isAdminUnlocked());
 
     // 좌표 탭 전용 DOM 요소
@@ -510,6 +570,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const storedSessionMetadata = getStoredSessionMetadata();
         let loadedMetadata = fallbackMetadata;
 
+        await flushPendingMetadata();
+
         // 1. Fetch metadata JSON
         try {
             const metaRes = await fetch(META_URL, { cache: 'no-cache' });
@@ -539,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update last sync time
         const now = new Date();
         const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-        localStorage.setItem('seic_last_sync', now.toISOString());
+        updateCycleAnchor(now);
 
         const syncTimeEl = document.getElementById('last-sync-time');
         if (syncTimeEl) {
@@ -550,16 +612,44 @@ document.addEventListener('DOMContentLoaded', () => {
         filterAndRender();
     }
 
+    function syncManualButtonState() {
+        if (!manualSyncBtn) return;
+        const unlocked = isAdminUnlocked();
+        manualSyncBtn.disabled = !unlocked;
+        manualSyncBtn.title = unlocked ? '관리자 수동 동기화' : '관리자 인증 필요';
+        if (!unlocked) {
+            manualSyncBtn.innerHTML = '🔒 관리자 인증 필요';
+        } else {
+            manualSyncBtn.innerHTML = '🔄 즉시 동기화';
+        }
+    }
+
     // Manual sync button trigger
     if (manualSyncBtn) {
         manualSyncBtn.addEventListener('click', async () => {
+            if (!isAdminUnlocked()) {
+                openAdminAuthModal();
+                return;
+            }
+
             const originalHtml = manualSyncBtn.innerHTML;
             manualSyncBtn.innerHTML = '동기화중...';
             manualSyncBtn.disabled = true;
-            await loadData();
+
+            const ok = await dispatchMetadataSync({
+                mode: 'manual',
+                commitMessage: 'chore(seic): manual sync / reset cycle',
+                metadata: customMetadata
+            });
+
+            if (ok) {
+                updateCycleAnchor(new Date());
+                console.info('수동 동기화 커밋이 GitHub에 반영되었고, 6시간 사이클이 지금 시점으로 재설정되었습니다.');
+            }
+
             setTimeout(() => {
                 manualSyncBtn.innerHTML = originalHtml;
-                manualSyncBtn.disabled = false;
+                syncManualButtonState();
             }, 600);
         });
     }
@@ -680,10 +770,8 @@ document.addEventListener('DOMContentLoaded', () => {
             nextMeta.status = document.getElementById('edit-status').value || item.status || 'normal';
 
             customMetadata[serial] = nextMeta;
-            const saved = await persistMetadataToFile(customMetadata);
-            if (!saved) {
-                return;
-            }
+            saveStoredSessionMetadata(customMetadata);
+            savePendingMetadata(customMetadata);
 
             elevatorList = elevatorList.map(entry => {
                 if (entry.serial !== serial) return entry;

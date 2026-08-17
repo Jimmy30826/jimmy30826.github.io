@@ -7,6 +7,16 @@ on:
         description: "승강기 메타데이터 JSON 문자열. 예: {\"10131-00316-01\": {\"name\": \"테스트\"}}"
         required: true
         type: string
+      sync_mode:
+        description: "동기화 모드: scheduled 또는 manual"
+        required: false
+        default: "scheduled"
+        type: string
+      commit_message:
+        description: "GitHub 커밋 메시지"
+        required: false
+        default: "chore(seic): scheduled sync"
+        type: string
 
 jobs:
   update-metadata:
@@ -30,6 +40,8 @@ jobs:
           python SEIC/admin_metadata_update.py
 
       - name: Commit and push metadata changes
+        env:
+          COMMIT_MESSAGE: ${{ github.event.inputs.commit_message || 'chore(seic): scheduled sync' }}
         run: |
           git config user.name "SEIC Admin"
           git config user.email "admin@seic.local"
@@ -37,6 +49,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No metadata changes detected."
           else
-            git commit -m "chore(seic): admin metadata update"
+            git commit -m "$COMMIT_MESSAGE"
             git push
           fi
