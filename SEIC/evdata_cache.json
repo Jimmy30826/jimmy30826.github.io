@@ -1,5 +1,5 @@
 {
-    "last_synced": "2026-08-21 06:36:58",
+    "last_synced": "2026-08-21 12:35:52",
     "sync_interval_hours": 6,
     "total_count": 7,
     "data": {
@@ -813,15 +813,48 @@
             "floors": [
                 {
                     "has_call_button": 1,
+                    "raw_name": {
+                        "color": "white",
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "1"
+                        ],
+                        "translate": "translation.test.args"
+                    },
+                    "floor_number": "1",
                     "y": -13,
                     "call_button_pos": {
                         "y": -12,
                         "z": -71,
                         "x": -144
                     }
+                },
+                {
+                    "has_call_button": 1,
+                    "raw_name": {
+                        "color": "white",
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "2"
+                        ],
+                        "translate": "translation.test.args"
+                    },
+                    "floor_number": "2",
+                    "y": 46,
+                    "call_button_pos": {
+                        "y": 47,
+                        "z": -71,
+                        "x": -144
+                    }
                 }
             ],
-            "delay": 12,
+            "delay": 0,
             "serial": "10146-10073-01"
         },
         "10014-10009-01": {
@@ -1232,13 +1265,13 @@
             "serial": "00088-10011-01"
         },
         "serial": [
-            "10151-00026-01",
-            "00034-10011-01",
             "10014-10009-01",
+            "00034-10011-01",
             "10131-00316-01",
-            "10165-10036-99",
             "00088-10011-01",
-            "10146-10073-01"
+            "10146-10073-01",
+            "10165-10036-99",
+            "10151-00026-01"
         ]
     }
 }
