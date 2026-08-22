@@ -437,14 +437,30 @@ document.addEventListener('DOMContentLoaded', () => {
             elevatorList = parseApiData(fallbackApiData, customMetadata);
         }
 
-        // Update last sync time
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-        localStorage.setItem('seic_last_sync', now.toISOString());
+        // Update last sync time from cache
+        let displayTimeStr = '';
+        try {
+            const cacheRes = await fetch('evdata_cache.json', { cache: 'no-cache' });
+            if (cacheRes.ok) {
+                const cacheData = await cacheRes.json();
+                if (cacheData.last_synced) {
+                    // last_synced format is usually "YYYY-MM-DD HH:MM:SS"
+                    const syncDate = new Date(cacheData.last_synced.replace(' ', 'T') + '+09:00');
+                    displayTimeStr = syncDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+        } catch (err) {
+            console.warn('Failed to fetch cache time', err);
+        }
+
+        if (!displayTimeStr) {
+            const now = new Date();
+            displayTimeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        }
 
         const syncTimeEl = document.getElementById('last-sync-time');
         if (syncTimeEl) {
-            syncTimeEl.textContent = `최근 동기화: ${timeStr} (6시간 주기)`;
+            syncTimeEl.textContent = `최근 동기화: ${displayTimeStr} (6시간 주기)`;
         }
 
         updateStats();
