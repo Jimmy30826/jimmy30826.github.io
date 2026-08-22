@@ -852,11 +852,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modalBackdrop.classList.add('active');
         document.body.style.overflow = 'hidden';
+        document.body.classList.add('modal-open');
     }
 
     function closeModal() {
         modalBackdrop.classList.remove('active');
         document.body.style.overflow = '';
+        document.body.classList.remove('modal-open');
     }
 
     if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
@@ -1187,29 +1189,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: editNameInput.value.trim(),
                 building: editBuildingInput.value.trim(),
                 manager: editManagerInput.value.trim(),
-                type: editTypeSelect.value,
-                status: editStatusSelect.value
+                type: editTypeSelect.value
             };
 
-            // Update in memory
-            if(!customMetadata[currentEditSerial]) {
-                customMetadata[currentEditSerial] = {};
+            // "시험운행 / 테스트용" 선택 시 일련번호 뒷자리를 -99로 자동 변경
+            let targetSerial = currentEditSerial;
+            if (updatedMeta.type === '시험운행 / 테스트용' && !targetSerial.endsWith('-99')) {
+                if (targetSerial.includes('-')) {
+                    targetSerial = targetSerial.replace(/-\d+$/, '-99');
+                } else {
+                    targetSerial += '-99';
+                }
             }
-            Object.assign(customMetadata[currentEditSerial], updatedMeta);
+
+            // Update in memory
+            if (targetSerial !== currentEditSerial) {
+                // 키 변경 발생 시 기존 데이터 복사 후 이전 키 삭제
+                customMetadata[targetSerial] = customMetadata[currentEditSerial] || {};
+                delete customMetadata[currentEditSerial];
+            }
+            if (!customMetadata[targetSerial]) {
+                customMetadata[targetSerial] = {};
+            }
+            Object.assign(customMetadata[targetSerial], updatedMeta);
 
             // Re-apply to elevatorList directly to update UI
             const item = elevatorList.find(e => e.serial === currentEditSerial);
             if (item) {
+                item.serial = targetSerial; // Update serial in list
                 item.name = updatedMeta.name;
                 item.building = updatedMeta.building;
                 item.manager = updatedMeta.manager;
                 item.type = updatedMeta.type;
-                if (updatedMeta.status) {
-                    item.status = updatedMeta.status;
-                    if (updatedMeta.status === 'normal') item.statusText = '정상운행';
-                    if (updatedMeta.status === 'test') item.statusText = '시험운행 (테스트)';
-                    if (updatedMeta.status === 'inspecting') item.statusText = '점검·보수중';
-                    if (updatedMeta.status === 'stopped') item.statusText = '운행정지';
+                item.isTest = targetSerial.endsWith('-99');
+                if (item.isTest) {
+                    item.statusText = '시험운행 (테스트)';
+                } else {
+                    item.statusText = '정상운행';
                 }
             }
             
