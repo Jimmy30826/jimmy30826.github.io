@@ -1,10 +1,12 @@
-name: Sync Elevator API (Every 6 Hours)
+name: Sync Elevator API & Update Meta
 
 on:
     schedule:
         # 매 6시간마다 실행 (00:00, 06:00, 12:00, 18:00 UTC)
         - cron: '0 */6 * * *'
     workflow_dispatch: # 수동 실행 트리거 지원
+    repository_dispatch:
+        types: [update_meta, manual_sync] # 웹 관리자 페이지에서 메타데이터 수정 및 즉시 동기화 시 호출
 
 jobs:
     sync:
@@ -15,6 +17,14 @@ jobs:
         steps:
             - name: 저장소 체크아웃
               uses: actions/checkout@v4
+
+            - name: 웹에서 전달받은 수정된 메타데이터 저장
+              if: github.event_name == 'repository_dispatch' && github.event.action == 'update_meta'
+              env:
+                META_PAYLOAD: ${{ toJSON(github.event.client_payload.meta_data) }}
+              run: |
+                echo "$META_PAYLOAD" > SEIC/elevators_meta.json
+                echo "웹에서 수정된 메타데이터가 적용되었습니다."
 
             - name: Python 환경 설정
               uses: actions/setup-python@v5
@@ -30,9 +40,16 @@ jobs:
                   git config user.name "SEIC-SyncBot"
                   git config user.email "bot@seic.local"
                   git add SEIC/elevators_meta.json SEIC/evdata_cache.json
+                  
                   if git diff --staged --quiet; then
                       echo "변동된 승강기 데이터가 없습니다."
                   else
-                      git commit -m "chore(seic): 6시간 주기 승강기 API 동기화 및 신규 메타데이터 반영"
+                      if [ "${{ github.event_name }}" = "repository_dispatch" ] && [ "${{ github.event.action }}" = "update_meta" ]; then
+                          git commit -m "chore(seic): 관리자 수동 메타데이터 반영 및 API 동기화"
+                      elif [ "${{ github.event_name }}" = "repository_dispatch" ] && [ "${{ github.event.action }}" = "manual_sync" ]; then
+                          git commit -m "chore(seic): 웹 관리자 즉시 동기화 요청"
+                      else
+                          git commit -m "chore(seic): 6시간 주기 승강기 API 동기화 및 신규 메타데이터 반영"
+                      fi
                       git push
                   fi

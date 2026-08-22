@@ -7,9 +7,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     const API_URL = 'https://mcsapi.kn4u.net/evapi';
     const META_URL = 'elevators_meta.json';
-    const GITHUB_REPO = 'jimmy30826/jimmy30826.github.io';
-    const GITHUB_BRANCH = 'main';
     const SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6시간 주기
+
+    // GitHub API Config & Auth State
+    const GITHUB_REPO = 'Jimmy30826/jimmy30826.github.io';
+    const GITHUB_FILE_PATH = 'SEIC/elevators_meta.json';
+    let githubToken = '';
+    let isAdmin = false;
 
     // undefined / null 안전 처리 헬퍼 함수
     function safeValue(val, fallback = '알수없음') {
@@ -201,153 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let elevatorList = [];
     let customMetadata = {};
-    let currentEditSerial = null;
-
-    const ADMIN_DEFAULT_PASSWORD = 'SEIC2026!';
-    const ADMIN_SESSION_KEY = 'seic_admin_session';
-    const SESSION_METADATA_KEY = 'seic_session_metadata';
-    const PENDING_METADATA_KEY = 'seic_pending_metadata';
-    const SYNC_CYCLE_ANCHOR_KEY = 'seic_cycle_anchor';
-    const STATUS_LABELS = {
-        normal: '정상운행',
-        inspecting: '점검·보수중',
-        stopped: '운행정지',
-        test: '시험운행 (테스트)'
-    };
-
-    function getStoredSessionMetadata() {
-        try {
-            const raw = localStorage.getItem(SESSION_METADATA_KEY);
-            return raw ? JSON.parse(raw) : {};
-        } catch (error) {
-            console.warn('세션 메타데이터 복구 실패:', error);
-            return {};
-        }
-    }
-
-    function saveStoredSessionMetadata(metadata) {
-        localStorage.setItem(SESSION_METADATA_KEY, JSON.stringify(metadata || {}));
-    }
-
-    function savePendingMetadata(metadata) {
-        const payload = {
-            updatedAt: new Date().toISOString(),
-            metadata: metadata || {}
-        };
-        localStorage.setItem(PENDING_METADATA_KEY, JSON.stringify(payload));
-    }
-
-    function getPendingMetadata() {
-        try {
-            const raw = localStorage.getItem(PENDING_METADATA_KEY);
-            return raw ? JSON.parse(raw) : null;
-        } catch (error) {
-            console.warn('대기 메타데이터 복구 실패:', error);
-            return null;
-        }
-    }
-
-    function clearPendingMetadata() {
-        localStorage.removeItem(PENDING_METADATA_KEY);
-    }
-
-    function getCycleAnchor() {
-        const raw = localStorage.getItem(SYNC_CYCLE_ANCHOR_KEY);
-        return raw ? new Date(raw).getTime() : Date.now();
-    }
-
-    function updateCycleAnchor(now = new Date()) {
-        localStorage.setItem(SYNC_CYCLE_ANCHOR_KEY, now.toISOString());
-        localStorage.setItem('seic_last_sync', now.toISOString());
-    }
-
-    function getGithubToken() {
-        const token = localStorage.getItem('seic_github_token');
-        return token && token.trim() ? token.trim() : '';
-    }
-
-    async function dispatchMetadataSync({ mode, commitMessage, metadata }) {
-        const token = getGithubToken();
-        if (!token) {
-            console.info('GitHub 토큰이 없어 메타데이터 커밋을 전송하지 않았습니다.');
-            return false;
-        }
-
-        try {
-            const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/admin_metadata_update.yml/dispatches`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/vnd.github+json',
-                    'Authorization': `Bearer ${token}`,
-                    'X-GitHub-Api-Version': '2022-11-28'
-                },
-                body: JSON.stringify({
-                    ref: GITHUB_BRANCH,
-                    inputs: {
-                        metadata_json: JSON.stringify(metadata || {}),
-                        sync_mode: mode || 'scheduled',
-                        commit_message: commitMessage || 'chore(seic): metadata sync'
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(`${response.status}: ${text}`);
-            }
-
-            return true;
-        } catch (error) {
-            console.error('메타데이터 GitHub 커밋 전송 실패:', error);
-            return false;
-        }
-    }
-
-    async function flushPendingMetadata() {
-        const pending = getPendingMetadata();
-        if (!pending || !pending.metadata) return;
-
-        const ok = await dispatchMetadataSync({
-            mode: 'scheduled',
-            commitMessage: 'chore(seic): scheduled sync',
-            metadata: pending.metadata
-        });
-
-        if (ok) {
-            console.info('6시간 주기 동기화 큐가 GitHub Actions로 전송되었습니다.');
-            clearPendingMetadata();
-            updateCycleAnchor(new Date());
-        }
-    }
-
-    function getAdminPassword() {
-        const override = localStorage.getItem('seic_admin_password_override');
-        return override && override.trim() ? override.trim() : ADMIN_DEFAULT_PASSWORD;
-    }
-
-    function setAdminUnlocked(isUnlocked) {
-        localStorage.setItem(ADMIN_SESSION_KEY, String(Boolean(isUnlocked)));
-        document.body.classList.toggle('admin-mode', isUnlocked);
-
-        const adminBadge = document.getElementById('admin-mode-badge');
-        const lockBtn = document.getElementById('btn-admin-lock');
-        const lockedIcon = document.getElementById('lock-icon-locked');
-        const unlockedIcon = document.getElementById('lock-icon-unlocked');
-
-        if (adminBadge) adminBadge.style.display = isUnlocked ? 'inline-flex' : 'none';
-        if (lockBtn) {
-            lockBtn.classList.toggle('unlocked', isUnlocked);
-            lockBtn.setAttribute('aria-label', isUnlocked ? '관리자 모드 해제' : '관리자 인증');
-            lockBtn.title = isUnlocked ? '관리자 모드 해제' : '관리자 모드';
-        }
-        if (lockedIcon) lockedIcon.style.display = isUnlocked ? 'none' : 'inline';
-        if (unlockedIcon) unlockedIcon.style.display = isUnlocked ? 'inline' : 'none';
-        syncManualButtonState();
-    }
-
-    function isAdminUnlocked() {
-        return localStorage.getItem(ADMIN_SESSION_KEY) === 'true';
-    }
 
     // DOM Elements
     const searchInput = document.getElementById('search-input');
@@ -363,23 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalBackdrop = document.getElementById('detail-modal');
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const manualSyncBtn = document.getElementById('btn-manual-sync');
-    const adminAuthModal = document.getElementById('admin-auth-modal');
-    const adminAuthCloseBtn = document.getElementById('admin-auth-close-btn');
-    const adminAuthCancelBtn = document.getElementById('admin-auth-cancel-btn');
-    const adminAuthConfirmBtn = document.getElementById('admin-auth-confirm-btn');
-    const adminPwInput = document.getElementById('admin-pw-input');
-    const authPwToggleBtn = document.getElementById('auth-pw-toggle');
-    const authErrorMsg = document.getElementById('auth-error-msg');
-    const editModal = document.getElementById('edit-modal');
-    const editModalCloseBtn = document.getElementById('edit-modal-close-btn');
-    const editModalCancelBtn = document.getElementById('edit-modal-cancel-btn');
-    const editModalSaveBtn = document.getElementById('edit-modal-save-btn');
-    const btnAdminLock = document.getElementById('btn-admin-lock');
-
-    if (manualSyncBtn) {
-        syncManualButtonState();
-    }
-    setAdminUnlocked(isAdminUnlocked());
 
     // 좌표 탭 전용 DOM 요소
     const searchRowDefault = document.getElementById('search-row-default');
@@ -522,14 +362,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 8. 상태 처리 (-99 시험운행 특수 처리)
             let status = 'normal';
-            let statusText = STATUS_LABELS.normal;
+            let statusText = '정상운행';
 
-            if (meta.status && typeof meta.status === 'string') {
-                status = meta.status;
-                statusText = STATUS_LABELS[meta.status] || STATUS_LABELS.normal;
-            } else if (isTest) {
+            if (isTest) {
                 status = 'test';
-                statusText = STATUS_LABELS.test;
+                statusText = '시험운행 (테스트)';
             }
 
             parsed.push({
@@ -567,25 +404,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch data from live API & elevators_meta.json
     async function loadData() {
-        const storedSessionMetadata = getStoredSessionMetadata();
-        let loadedMetadata = fallbackMetadata;
-
-        await flushPendingMetadata();
-
         // 1. Fetch metadata JSON
         try {
             const metaRes = await fetch(META_URL, { cache: 'no-cache' });
             if (metaRes.ok) {
-                loadedMetadata = await metaRes.json();
+                customMetadata = await metaRes.json();
+            } else {
+                customMetadata = fallbackMetadata;
             }
         } catch (err) {
             console.warn('Metadata JSON fetch failed, using fallback metadata:', err);
+            customMetadata = fallbackMetadata;
         }
-
-        customMetadata = {
-            ...loadedMetadata,
-            ...storedSessionMetadata
-        };
 
         // 2. Fetch live API data
         try {
@@ -601,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update last sync time
         const now = new Date();
         const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-        updateCycleAnchor(now);
+        localStorage.setItem('seic_last_sync', now.toISOString());
 
         const syncTimeEl = document.getElementById('last-sync-time');
         if (syncTimeEl) {
@@ -612,185 +442,49 @@ document.addEventListener('DOMContentLoaded', () => {
         filterAndRender();
     }
 
-    function syncManualButtonState() {
-        if (!manualSyncBtn) return;
-        const unlocked = isAdminUnlocked();
-        manualSyncBtn.disabled = !unlocked;
-        manualSyncBtn.title = unlocked ? '관리자 수동 동기화' : '관리자 인증 필요';
-        if (!unlocked) {
-            manualSyncBtn.innerHTML = '🔒 관리자 인증 필요';
-        } else {
-            manualSyncBtn.innerHTML = '🔄 즉시 동기화';
-        }
-    }
-
     // Manual sync button trigger
     if (manualSyncBtn) {
         manualSyncBtn.addEventListener('click', async () => {
-            if (!isAdminUnlocked()) {
-                openAdminAuthModal();
+            if (!isAdmin || !githubToken) {
+                alert('이 기능은 관리자 권한이 필요합니다. 우측 상단의 자물쇠 아이콘을 눌러 GitHub 토큰으로 로그인해주세요.');
                 return;
             }
 
             const originalHtml = manualSyncBtn.innerHTML;
-            manualSyncBtn.innerHTML = '동기화중...';
+            manualSyncBtn.innerHTML = '요청 전송 중...';
             manualSyncBtn.disabled = true;
 
-            const ok = await dispatchMetadataSync({
-                mode: 'manual',
-                commitMessage: 'chore(seic): manual sync / reset cycle',
-                metadata: customMetadata
-            });
+            try {
+                const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/dispatches`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        event_type: 'manual_sync'
+                    })
+                });
 
-            if (ok) {
-                updateCycleAnchor(new Date());
-                console.info('수동 동기화 커밋이 GitHub에 반영되었고, 6시간 사이클이 지금 시점으로 재설정되었습니다.');
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.message || '업데이트 요청 실패');
+                }
+                
+                alert('GitHub Actions에 즉시 동기화 요청을 보냈습니다.\n(잠시 후 서버 API 데이터를 새로고침하여 자동 반영됩니다)');
+                // 팝업은 띄웠지만 로컬에서도 한 번 데이터를 업데이트해서 당장 화면에 보이게 함
+                await loadData();
+            } catch (err) {
+                console.error(err);
+                alert(`즉시 동기화 요청 중 오류가 발생했습니다: ${err.message}`);
+                await loadData(); // Fallback to local fetch only
+            } finally {
+                setTimeout(() => {
+                    manualSyncBtn.innerHTML = originalHtml;
+                    manualSyncBtn.disabled = false;
+                }, 600);
             }
-
-            setTimeout(() => {
-                manualSyncBtn.innerHTML = originalHtml;
-                syncManualButtonState();
-            }, 600);
-        });
-    }
-
-    function openAdminAuthModal() {
-        if (!adminAuthModal) return;
-        adminAuthModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        setTimeout(() => adminPwInput && adminPwInput.focus(), 50);
-    }
-
-    function closeAdminAuthModal() {
-        if (!adminAuthModal) return;
-        adminAuthModal.classList.remove('active');
-        if (document.getElementById('detail-modal') && document.getElementById('detail-modal').classList.contains('active')) {
-            return;
-        }
-        document.body.style.overflow = '';
-        if (adminPwInput) {
-            adminPwInput.value = '';
-        }
-        if (authErrorMsg) {
-            authErrorMsg.style.display = 'none';
-        }
-    }
-
-    function handleAdminAuth() {
-        if (!adminPwInput) return;
-        const inputVal = adminPwInput.value.trim();
-        if (inputVal === '' || inputVal !== getAdminPassword()) {
-            if (authErrorMsg) {
-                authErrorMsg.style.display = 'flex';
-            }
-            adminPwInput.focus();
-            return;
-        }
-
-        setAdminUnlocked(true);
-        closeAdminAuthModal();
-    }
-
-    if (btnAdminLock) {
-        btnAdminLock.addEventListener('click', () => {
-            if (isAdminUnlocked()) {
-                setAdminUnlocked(false);
-                return;
-            }
-            openAdminAuthModal();
-        });
-    }
-
-    if (adminAuthCloseBtn) adminAuthCloseBtn.addEventListener('click', closeAdminAuthModal);
-    if (adminAuthCancelBtn) adminAuthCancelBtn.addEventListener('click', closeAdminAuthModal);
-    if (adminAuthConfirmBtn) adminAuthConfirmBtn.addEventListener('click', handleAdminAuth);
-    if (adminPwInput) {
-        adminPwInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                handleAdminAuth();
-            }
-        });
-    }
-    if (authPwToggleBtn) {
-        authPwToggleBtn.addEventListener('click', () => {
-            if (!adminPwInput) return;
-            const showPw = adminPwInput.type === 'password';
-            adminPwInput.type = showPw ? 'text' : 'password';
-            const eyeShow = document.getElementById('pw-eye-show');
-            const eyeHide = document.getElementById('pw-eye-hide');
-            if (eyeShow) eyeShow.style.display = showPw ? 'none' : 'inline';
-            if (eyeHide) eyeHide.style.display = showPw ? 'inline' : 'none';
-        });
-    }
-
-    function closeEditModal() {
-        if (!editModal) return;
-        editModal.classList.remove('active');
-        if (!document.getElementById('detail-modal') || !document.getElementById('detail-modal').classList.contains('active')) {
-            document.body.style.overflow = '';
-        }
-        currentEditSerial = null;
-    }
-
-    function openEditModal(serial) {
-        if (!serial || !editModal) return;
-
-        const item = elevatorList.find(e => e.serial === serial);
-        if (!item) return;
-
-        const meta = customMetadata[serial] || {};
-        currentEditSerial = serial;
-
-        document.getElementById('edit-modal-serial').textContent = serial;
-        document.getElementById('edit-name').value = meta.name || item.name || '';
-        document.getElementById('edit-building').value = meta.building || item.building || '';
-        document.getElementById('edit-manager').value = meta.manager || item.manager || '';
-        document.getElementById('edit-type').value = meta.type || item.type || '승객용 / 일반';
-        document.getElementById('edit-status').value = meta.status || item.status || 'normal';
-
-        editModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    if (editModalCloseBtn) editModalCloseBtn.addEventListener('click', closeEditModal);
-    if (editModalCancelBtn) editModalCancelBtn.addEventListener('click', closeEditModal);
-    if (editModalSaveBtn) {
-        editModalSaveBtn.addEventListener('click', async () => {
-            if (!currentEditSerial) return;
-
-            const serial = currentEditSerial;
-            const item = elevatorList.find(e => e.serial === serial);
-            if (!item) return;
-
-            const nextMeta = customMetadata[serial] || {};
-            nextMeta.name = document.getElementById('edit-name').value.trim() || item.name;
-            nextMeta.building = document.getElementById('edit-building').value.trim() || item.building;
-            nextMeta.manager = document.getElementById('edit-manager').value.trim() || item.manager;
-            nextMeta.type = document.getElementById('edit-type').value || item.type;
-            nextMeta.status = document.getElementById('edit-status').value || item.status || 'normal';
-
-            customMetadata[serial] = nextMeta;
-            saveStoredSessionMetadata(customMetadata);
-            savePendingMetadata(customMetadata);
-
-            elevatorList = elevatorList.map(entry => {
-                if (entry.serial !== serial) return entry;
-                const statusValue = nextMeta.status || entry.status || 'normal';
-                const statusText = STATUS_LABELS[statusValue] || STATUS_LABELS.normal;
-                return {
-                    ...entry,
-                    name: nextMeta.name || entry.name,
-                    building: nextMeta.building || entry.building,
-                    manager: nextMeta.manager || entry.manager,
-                    type: nextMeta.type || entry.type,
-                    status: statusValue,
-                    statusText: statusText,
-                    isTest: entry.isTest || statusValue === 'test'
-                };
-            });
-
-            filterAndRender();
-            closeEditModal();
         });
     }
 
@@ -1070,10 +764,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="ev-card-foot">
                         <span class="ev-manager-text">운영: ${item.manager}</span>
-                        <button type="button" class="btn-edit-card" data-serial="${item.serial}" aria-label="${item.serial} 정보 수정">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            수정
-                        </button>
                         <span class="btn-detail">
                             상세 스펙 조회
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1084,13 +774,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </article>
             `;
         }).join('');
-
-        document.querySelectorAll('.btn-edit-card').forEach(btn => {
-            btn.addEventListener('click', (event) => {
-                event.stopPropagation();
-                openEditModal(btn.dataset.serial);
-            });
-        });
 
         // Modal triggers
         document.querySelectorAll('.ev-card').forEach(card => {
@@ -1220,6 +903,365 @@ document.addEventListener('DOMContentLoaded', () => {
             applyTabUI('all');
             filterAndRender();
         });
+    }
+
+    // ===== Admin Auth & Editing Logic =====
+    
+    // Auth Modal DOM
+    const btnAdminLock = document.getElementById('btn-admin-lock');
+    const lockIconLocked = document.getElementById('lock-icon-locked');
+    const lockIconUnlocked = document.getElementById('lock-icon-unlocked');
+    const adminModeBadge = document.getElementById('admin-mode-badge');
+    const adminAuthModal = document.getElementById('admin-auth-modal');
+    const adminAuthCloseBtn = document.getElementById('admin-auth-close-btn');
+    const adminAuthCancelBtn = document.getElementById('admin-auth-cancel-btn');
+    const adminAuthConfirmBtn = document.getElementById('admin-auth-confirm-btn');
+    const adminPwInput = document.getElementById('admin-pw-input');
+    const authPwToggle = document.getElementById('auth-pw-toggle');
+    const pwEyeShow = document.getElementById('pw-eye-show');
+    const pwEyeHide = document.getElementById('pw-eye-hide');
+    const authErrorMsg = document.getElementById('auth-error-msg');
+    const btnEditMeta = document.getElementById('btn-edit-meta');
+
+    // Edit Modal DOM
+    const editModal = document.getElementById('edit-modal');
+    const editModalCloseBtn = document.getElementById('edit-modal-close-btn');
+    const editModalCancelBtn = document.getElementById('edit-modal-cancel-btn');
+    const editModalSaveBtn = document.getElementById('edit-modal-save-btn');
+    
+    const editSerialEl = document.getElementById('edit-modal-serial');
+    const editNameInput = document.getElementById('edit-name');
+    const editBuildingInput = document.getElementById('edit-building');
+    const editManagerInput = document.getElementById('edit-manager');
+    const editTypeSelect = document.getElementById('edit-type');
+    const editStatusSelect = document.getElementById('edit-status');
+
+    let currentEditSerial = null;
+
+    // Toggle Admin Mode
+    function setAdminMode(status) {
+        isAdmin = status;
+        if (isAdmin) {
+            if(lockIconLocked) lockIconLocked.style.display = 'none';
+            if(lockIconUnlocked) lockIconUnlocked.style.display = 'block';
+            if(adminModeBadge) adminModeBadge.style.display = 'inline-flex';
+            if(btnEditMeta) btnEditMeta.style.display = 'inline-flex';
+            if(btnAdminLock) btnAdminLock.classList.add('active');
+        } else {
+            if(lockIconLocked) lockIconLocked.style.display = 'block';
+            if(lockIconUnlocked) lockIconUnlocked.style.display = 'none';
+            if(adminModeBadge) adminModeBadge.style.display = 'none';
+            if(btnEditMeta) btnEditMeta.style.display = 'none';
+            if(btnAdminLock) btnAdminLock.classList.remove('active');
+        }
+    }
+
+    // Admin Auth Modal Events
+    if (btnAdminLock) {
+        btnAdminLock.addEventListener('click', () => {
+            if (isAdmin) {
+                if(confirm("관리자 모드를 종료하시겠습니까?")) {
+                    setAdminMode(false);
+                }
+            } else {
+                if(adminAuthModal) {
+                    adminAuthModal.classList.add('active');
+                    adminPwInput.value = '';
+                    authErrorMsg.style.display = 'none';
+                    setTimeout(() => adminPwInput.focus(), 100);
+                }
+            }
+        });
+    }
+
+    function closeAuthModal() {
+        if(adminAuthModal) adminAuthModal.classList.remove('active');
+    }
+
+    if (adminAuthCloseBtn) adminAuthCloseBtn.addEventListener('click', closeAuthModal);
+    if (adminAuthCancelBtn) adminAuthCancelBtn.addEventListener('click', closeAuthModal);
+
+    // Password Eye Toggle
+    if (authPwToggle) {
+        authPwToggle.addEventListener('click', () => {
+            if (adminPwInput.type === 'password') {
+                adminPwInput.type = 'text';
+                pwEyeShow.style.display = 'none';
+                pwEyeHide.style.display = 'block';
+            } else {
+                adminPwInput.type = 'password';
+                pwEyeShow.style.display = 'block';
+                pwEyeHide.style.display = 'none';
+            }
+        });
+    }
+
+
+    // 🔴 토큰 하드코딩 제거 (보안 위험 방지)
+    // LocalStorage를 활용한 자동 로그인 로직 추가
+
+    // 페이지 로드 시 로컬 스토리지 확인
+    const savedToken = localStorage.getItem('seic_github_token');
+    const savedId = localStorage.getItem('seic_admin_id');
+    if (savedToken && savedId) {
+        // 이미 저장된 정보가 있다면, 백그라운드에서 토큰 유효성 검사 후 자동 로그인 처리
+        fetch(`https://api.github.com/user`, {
+            headers: { 'Authorization': `token ${savedToken}` }
+        }).then(res => {
+            if(res.ok) {
+                githubToken = savedToken;
+                setAdminMode(true);
+            } else {
+                // 토큰 만료/오류 시 스토리지 초기화
+                localStorage.removeItem('seic_github_token');
+                localStorage.removeItem('seic_admin_id');
+            }
+        }).catch(err => console.error(err));
+    }
+
+    // Confirm Auth via ID, Password, and Token
+    async function attemptAuth() {
+        const adminIdInput = document.getElementById('admin-id-input');
+        const adminTokenInput = document.getElementById('admin-token-input');
+        const keepLoginCb = document.getElementById('keep-login-checkbox');
+        const errText = document.getElementById('auth-error-text');
+
+        const adminId = adminIdInput ? adminIdInput.value.trim() : '';
+        const pw = adminPwInput.value.trim();
+        const tokenVal = adminTokenInput ? adminTokenInput.value.trim() : '';
+        
+        if (!adminId || !pw || !tokenVal) return;
+
+        const validIds = ['jimmy30826', 'mapdeveloper'];
+        const validPw = 'SEIC2026!!';
+
+        if (adminAuthConfirmBtn) {
+            adminAuthConfirmBtn.disabled = true;
+            adminAuthConfirmBtn.innerHTML = '인증 중...';
+        }
+
+        try {
+            // 1. ID / PW 검사
+            if (!validIds.includes(adminId) || pw !== validPw) {
+                throw new Error("ID 또는 비밀번호가 올바르지 않습니다.");
+            }
+
+            // 2. GitHub Token 실제 유효성 검사
+            const res = await fetch(`https://api.github.com/user`, {
+                headers: { 'Authorization': `token ${tokenVal}` }
+            });
+
+            if (!res.ok) {
+                throw new Error("GitHub 토큰이 유효하지 않거나 권한이 없습니다.");
+            }
+
+            // 3. 인증 성공 처리
+            githubToken = tokenVal;
+            setAdminMode(true);
+            
+            // 로그인 유지 체크 시 스토리지에 저장
+            if (keepLoginCb && keepLoginCb.checked) {
+                localStorage.setItem('seic_github_token', tokenVal);
+                localStorage.setItem('seic_admin_id', adminId);
+            } else {
+                localStorage.removeItem('seic_github_token');
+                localStorage.removeItem('seic_admin_id');
+            }
+
+            closeAuthModal();
+            alert(`관리자(${adminId}) 로그인 성공!`);
+        } catch(err) {
+            if(authErrorMsg) {
+                authErrorMsg.style.display = 'flex';
+                if(errText) errText.textContent = err.message;
+            }
+            adminPwInput.focus();
+        } finally {
+            if (adminAuthConfirmBtn) {
+                adminAuthConfirmBtn.disabled = false;
+                adminAuthConfirmBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 인증`;
+            }
+        }
+    }
+
+    // 관리자 모드 종료 시 로그아웃(스토리지 삭제) 처리 추가
+    if (btnAdminLock) {
+        // 기존 이벤트 리스너를 덮어쓰기 위해 다시 선언하는 것보다, setAdminMode(false) 호출 시점에 개입하거나 클릭 리스너를 교체해야 합니다.
+        // 위에 이미 선언된 btnAdminLock click 리스너는 놔두고, 토큰 삭제 로직만 덧붙이기 위해 아래 코드 사용
+        const oldBtn = btnAdminLock.cloneNode(true);
+        btnAdminLock.parentNode.replaceChild(oldBtn, btnAdminLock);
+        
+        oldBtn.addEventListener('click', () => {
+            if (isAdmin) {
+                if(confirm("관리자 모드를 종료하시겠습니까? (저장된 로그인 정보도 함께 삭제됩니다)")) {
+                    setAdminMode(false);
+                    githubToken = '';
+                    localStorage.removeItem('seic_github_token');
+                    localStorage.removeItem('seic_admin_id');
+                }
+            } else {
+                const modal = document.getElementById('admin-auth-modal');
+                if(modal) {
+                    modal.classList.add('active');
+                    adminPwInput.value = '';
+                    if(document.getElementById('admin-token-input')) document.getElementById('admin-token-input').value = '';
+                    if(authErrorMsg) authErrorMsg.style.display = 'none';
+                    setTimeout(() => document.getElementById('admin-id-input').focus(), 100);
+                }
+            }
+        });
+    }
+
+    if (adminAuthConfirmBtn) adminAuthConfirmBtn.addEventListener('click', attemptAuth);
+    const authInputs = [
+        document.getElementById('admin-id-input'),
+        adminPwInput,
+        document.getElementById('admin-token-input')
+    ];
+    authInputs.forEach(input => {
+        if (input) {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') attemptAuth();
+            });
+        }
+    });
+
+    // Open Edit Modal
+    if (btnEditMeta) {
+        btnEditMeta.addEventListener('click', () => {
+            const serial = document.getElementById('modal-cert-id').textContent;
+            const item = elevatorList.find(e => e.serial === serial);
+            if (!item) return;
+
+            currentEditSerial = serial;
+            
+            // Set current values
+            editSerialEl.textContent = serial;
+            
+            // Default from customMetadata or item fallback
+            const meta = customMetadata[serial] || {};
+            editNameInput.value = meta.name || item.name || '';
+            editBuildingInput.value = meta.building || item.building || '';
+            editManagerInput.value = meta.manager || item.manager || '';
+            
+            // Set selects
+            Array.from(editTypeSelect.options).forEach(opt => {
+                if(opt.value === (meta.type || item.type)) opt.selected = true;
+            });
+            const storedStatus = meta.status || item.status;
+            Array.from(editStatusSelect.options).forEach(opt => {
+                if(opt.value === storedStatus) opt.selected = true;
+            });
+
+            closeModal(); // Close detail modal
+            if(editModal) {
+                editModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+    }
+
+    function closeEditModal() {
+        if(editModal) editModal.classList.remove('active');
+        document.body.style.overflow = '';
+        currentEditSerial = null;
+    }
+
+    if (editModalCloseBtn) editModalCloseBtn.addEventListener('click', closeEditModal);
+    if (editModalCancelBtn) editModalCancelBtn.addEventListener('click', closeEditModal);
+
+    // Encode string to base64 properly with unicode
+    function utf8ToBase64(str) {
+        return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    // Save Edit to GitHub API
+    if (editModalSaveBtn) {
+        editModalSaveBtn.addEventListener('click', async () => {
+            if (!currentEditSerial || !githubToken) {
+                alert('인증 토큰이 없거나 대상이 선택되지 않았습니다.');
+                return;
+            }
+
+            const updatedMeta = {
+                name: editNameInput.value.trim(),
+                building: editBuildingInput.value.trim(),
+                manager: editManagerInput.value.trim(),
+                type: editTypeSelect.value,
+                status: editStatusSelect.value
+            };
+
+            // Update in memory
+            if(!customMetadata[currentEditSerial]) {
+                customMetadata[currentEditSerial] = {};
+            }
+            Object.assign(customMetadata[currentEditSerial], updatedMeta);
+
+            // Re-apply to elevatorList directly to update UI
+            const item = elevatorList.find(e => e.serial === currentEditSerial);
+            if (item) {
+                item.name = updatedMeta.name;
+                item.building = updatedMeta.building;
+                item.manager = updatedMeta.manager;
+                item.type = updatedMeta.type;
+                if (updatedMeta.status) {
+                    item.status = updatedMeta.status;
+                    if (updatedMeta.status === 'normal') item.statusText = '정상운행';
+                    if (updatedMeta.status === 'test') item.statusText = '시험운행 (테스트)';
+                    if (updatedMeta.status === 'inspecting') item.statusText = '점검·보수중';
+                    if (updatedMeta.status === 'stopped') item.statusText = '운행정지';
+                }
+            }
+            
+            filterAndRender(); // Update UI immediately
+
+            // Commit via GitHub Actions Repository Dispatch
+            editModalSaveBtn.disabled = true;
+            editModalSaveBtn.innerHTML = '반영 중...';
+
+            try {
+                const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/dispatches`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        event_type: 'update_meta',
+                        client_payload: {
+                            meta_data: customMetadata
+                        }
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.message || '업데이트 요청 실패');
+                }
+                
+                alert('GitHub Actions에 메타데이터 반영 요청을 보냈습니다.\n(잠시 후 처리 및 페이지에 자동 반영됩니다)');
+                closeEditModal();
+            } catch (err) {
+                console.error(err);
+                alert(`GitHub 반영 요청 중 오류가 발생했습니다: ${err.message}`);
+                // Fallback to download
+                triggerDownload(customMetadata);
+            } finally {
+                editModalSaveBtn.disabled = false;
+                editModalSaveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 변경 저장`;
+            }
+        });
+    }
+
+    function triggerDownload(data) {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 4));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "elevators_meta.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
     }
 
     // Start loading data

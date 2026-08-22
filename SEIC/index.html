@@ -490,6 +490,10 @@
             </div>
 
             <div class="modal-footer">
+                <button type="button" class="btn-modal-action admin-only" id="btn-edit-meta" style="display:none; background: var(--navy-800); color: white; margin-right: auto;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; vertical-align: -2px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    정보 수정
+                </button>
                 <button type="button" class="btn-modal-action secondary" id="btn-copy-id">
                     고유번호 복사
                 </button>
@@ -512,7 +516,7 @@
                         </svg>
                         관리자 인증
                     </h3>
-                    <p>SEIC 관리자 비밀번호를 입력하세요.</p>
+                    <p>시스템 관리자 계정과 GitHub 토큰을 입력하세요.</p>
                 </div>
                 <button class="modal-close-btn" id="admin-auth-close-btn" aria-label="닫기">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -522,23 +526,44 @@
                 </button>
             </div>
             <div class="modal-body admin-auth-body">
-                <div class="auth-input-wrap">
+                <div class="auth-input-wrap" style="margin-bottom: 12px;">
+                    <input
+                        type="text"
+                        id="admin-id-input"
+                        class="auth-pw-input"
+                        placeholder="관리자 ID"
+                        autocomplete="off"
+                    />
+                </div>
+                <div class="auth-input-wrap" style="margin-bottom: 12px;">
                     <input
                         type="password"
                         id="admin-pw-input"
                         class="auth-pw-input"
-                        placeholder="비밀번호 입력"
-                        autocomplete="current-password"
-                        maxlength="32"
+                        placeholder="비밀번호"
+                        autocomplete="off"
                     />
                     <button type="button" class="auth-pw-toggle" id="auth-pw-toggle" aria-label="비밀번호 표시/숨기기">
                         <svg id="pw-eye-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         <svg id="pw-eye-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     </button>
                 </div>
+                <div class="auth-input-wrap" style="margin-bottom: 16px;">
+                    <input
+                        type="password"
+                        id="admin-token-input"
+                        class="auth-pw-input"
+                        placeholder="GitHub Token (ghp_...)"
+                        autocomplete="off"
+                    />
+                </div>
+                <div style="margin-bottom: 12px; display: flex; align-items: center; font-size: 0.9rem; color: var(--text-color);">
+                    <input type="checkbox" id="keep-login-checkbox" checked style="margin-right: 8px; width: 16px; height: 16px;">
+                    <label for="keep-login-checkbox" style="cursor: pointer;">로그인 상태 유지 (브라우저 자동 로그인)</label>
+                </div>
                 <div class="auth-error-msg" id="auth-error-msg" style="display:none;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    비밀번호가 올바르지 않습니다.
+                    <span id="auth-error-text">ID, 비밀번호 또는 토큰이 올바르지 않습니다.</span>
                 </div>
             </div>
             <div class="modal-footer">
@@ -610,7 +635,7 @@
                 </div>
                 <div class="edit-notice">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
-                    변경 사항은 대기열에 저장되고, 다음 6시간 동기화 사이클에서 GitHub로 반영됩니다. 토큰이 있으면 자동 커밋이 수행됩니다.
+                    저장 시 GitHub API를 통해 <code>elevators_meta.json</code>에 즉시 커밋되며, GitHub Actions를 통해 사이트에 자동 배포됩니다.
                 </div>
             </div>
             <div class="modal-footer">
