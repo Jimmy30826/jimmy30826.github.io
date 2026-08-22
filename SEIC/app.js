@@ -258,7 +258,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const ev = rawJson[serial] || {};
             const meta = (metaJson && metaJson[serial]) ? metaJson[serial] : {};
 
-            const isTest = String(serial).endsWith('-99');
+            const isTest = String(serial).endsWith('-99') || meta.type === '시험운행 / 테스트용';
+            let displaySerial = serial;
+            if (isTest && !String(displaySerial).endsWith('-99')) {
+                if (String(displaySerial).includes('-')) {
+                    displaySerial = String(displaySerial).replace(/-\d+$/, '-99');
+                } else {
+                    displaySerial += '-99';
+                }
+            }
             const evId = ev.id !== undefined ? ev.id : (isTest ? 99 : '알수없음');
             const bounds = ev.bounds || {};
             const min = bounds.min || null;
@@ -371,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             parsed.push({
                 serial: safeValue(serial, '알수없음'),
+                displaySerial: safeValue(displaySerial, '알수없음'),
                 isTest: isTest,
                 id: evId,
                 delay: ev.delay !== undefined ? ev.delay : '알수없음',
@@ -727,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <rect x="3" y="3" width="18" height="18" rx="2"/>
                                 <path d="M7 7h.01M7 17h.01M17 7h.01M17 17h.01"/>
                             </svg>
-                            ${item.serial}
+                            ${item.displaySerial || item.serial}
                         </span>
                         <span class="ev-status ${statusClass}">
                             ● ${item.statusText}
@@ -795,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Modal display
     function openModal(item) {
-        document.getElementById('modal-cert-id').textContent = safeValue(item.serial);
+        document.getElementById('modal-cert-id').textContent = safeValue(item.displaySerial || item.serial);
         document.getElementById('modal-ev-name').textContent = safeValue(item.name);
         document.getElementById('modal-building').textContent = safeValue(item.building);
         document.getElementById('modal-location').textContent = safeValue(item.location);
@@ -936,7 +945,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const editBuildingInput = document.getElementById('edit-building');
     const editManagerInput = document.getElementById('edit-manager');
     const editTypeSelect = document.getElementById('edit-type');
-    const editStatusSelect = document.getElementById('edit-status');
 
     let currentEditSerial = null;
 
@@ -1131,17 +1139,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Open Edit Modal
     if (btnEditMeta) {
         btnEditMeta.addEventListener('click', () => {
-            const serial = document.getElementById('modal-cert-id').textContent;
-            const item = elevatorList.find(e => e.serial === serial);
+            const displayOrSerial = document.getElementById('modal-cert-id').textContent;
+            const item = elevatorList.find(e => e.displaySerial === displayOrSerial || e.serial === displayOrSerial);
             if (!item) return;
 
-            currentEditSerial = serial;
+            currentEditSerial = item.serial;
             
             // Set current values
-            editSerialEl.textContent = serial;
+            editSerialEl.textContent = item.displaySerial || item.serial;
             
             // Default from customMetadata or item fallback
-            const meta = customMetadata[serial] || {};
+            const meta = customMetadata[item.serial] || {};
             editNameInput.value = meta.name || item.name || '';
             editBuildingInput.value = meta.building || item.building || '';
             editManagerInput.value = meta.manager || item.manager || '';
@@ -1149,10 +1157,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Set selects
             Array.from(editTypeSelect.options).forEach(opt => {
                 if(opt.value === (meta.type || item.type)) opt.selected = true;
-            });
-            const storedStatus = meta.status || item.status;
-            Array.from(editStatusSelect.options).forEach(opt => {
-                if(opt.value === storedStatus) opt.selected = true;
             });
 
             closeModal(); // Close detail modal
@@ -1192,36 +1196,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: editTypeSelect.value
             };
 
-            // "시험운행 / 테스트용" 선택 시 일련번호 뒷자리를 -99로 자동 변경
-            let targetSerial = currentEditSerial;
-            if (updatedMeta.type === '시험운행 / 테스트용' && !targetSerial.endsWith('-99')) {
-                if (targetSerial.includes('-')) {
-                    targetSerial = targetSerial.replace(/-\d+$/, '-99');
-                } else {
-                    targetSerial += '-99';
-                }
-            }
-
             // Update in memory
-            if (targetSerial !== currentEditSerial) {
-                // 키 변경 발생 시 기존 데이터 복사 후 이전 키 삭제
-                customMetadata[targetSerial] = customMetadata[currentEditSerial] || {};
-                delete customMetadata[currentEditSerial];
+            if (!customMetadata[currentEditSerial]) {
+                customMetadata[currentEditSerial] = {};
             }
-            if (!customMetadata[targetSerial]) {
-                customMetadata[targetSerial] = {};
-            }
-            Object.assign(customMetadata[targetSerial], updatedMeta);
+            Object.assign(customMetadata[currentEditSerial], updatedMeta);
 
             // Re-apply to elevatorList directly to update UI
             const item = elevatorList.find(e => e.serial === currentEditSerial);
             if (item) {
-                item.serial = targetSerial; // Update serial in list
                 item.name = updatedMeta.name;
                 item.building = updatedMeta.building;
                 item.manager = updatedMeta.manager;
                 item.type = updatedMeta.type;
-                item.isTest = targetSerial.endsWith('-99');
+                item.isTest = updatedMeta.type === '시험운행 / 테스트용' || currentEditSerial.endsWith('-99');
+                
+                if (item.isTest && !currentEditSerial.endsWith('-99')) {
+                    item.displaySerial = currentEditSerial.includes('-') ? currentEditSerial.replace(/-\d+$/, '-99') : currentEditSerial + '-99';
+                } else if (!item.isTest && currentEditSerial.endsWith('-99')) {
+                    item.displaySerial = currentEditSerial.replace(/-99$/, '-01'); // Optional fallback
+                } else {
+                    item.displaySerial = currentEditSerial;
+                }
+
                 if (item.isTest) {
                     item.statusText = '시험운행 (테스트)';
                 } else {
