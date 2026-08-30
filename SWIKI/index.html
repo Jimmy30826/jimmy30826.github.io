@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마인크래프트 서버 위키 - SWIKI</title>
+    <!-- 폰트 어썸 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 마크다운 파서 (Marked.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Galmuri9&display=swap');
+
+        :root {
+            --mc-green: #4CAF50;
+            --mc-dark-green: #388E3C;
+            --mc-brown: #795548;
+            --mc-dark-brown: #5D4037;
+            --mc-stone: #9E9E9E;
+            --mc-dark-stone: #616161;
+            
+            --bg-color: #f0f0f0;
+            --text-color: #222;
+            --link-color: #1976D2;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Galmuri9', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            background-image: url('data:image/svg+xml;utf8,<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="%23e8e8e8"/><rect width="20" height="20" fill="%23dfdfdf"/><rect x="20" y="20" width="20" height="20" fill="%23dfdfdf"/></svg>');
+        }
+
+        a { text-decoration: none; color: var(--link-color); }
+        a:hover { text-decoration: underline; }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--mc-green);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            height: 60px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 4px solid var(--mc-dark-green);
+        }
+
+        .navbar-brand { font-size: 1.5rem; text-shadow: 2px 2px 0 #000; }
+        .navbar-brand a { color: white; display: flex; align-items: center; gap: 10px; }
+
+        .navbar-search {
+            flex-grow: 1;
+            max-width: 400px;
+            margin: 0 1rem;
+            display: flex;
+            height: 36px;
+        }
+        .navbar-search input {
+            width: 100%; padding: 5px 10px; border: 2px solid var(--mc-dark-stone); outline: none; font-family: inherit;
+        }
+        .navbar-search button {
+            padding: 5px 15px; background-color: var(--mc-stone); color: white; cursor: pointer; font-family: inherit; border: 2px solid var(--mc-dark-stone); border-left: none;
+        }
+        .navbar-search button:hover { background-color: var(--mc-dark-stone); }
+
+        .navbar-menu { display: flex; gap: 15px; }
+        .navbar-menu a { color: white; text-shadow: 1px 1px 0 #000; cursor: pointer; }
+
+        /* Main Layout */
+        .container { display: flex; max-width: 1200px; margin: 20px auto; gap: 20px; padding: 0 15px; }
+        .content-area {
+            flex: 3; background: white; border: 2px solid #000; box-shadow: 4px 4px 0 rgba(0,0,0,0.2); padding: 25px; min-height: 80vh;
+        }
+        .sidebar { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+
+        /* Wiki Content */
+        .wiki-header {
+            display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid var(--mc-brown); padding-bottom: 10px; margin-bottom: 20px;
+        }
+        .wiki-title { font-size: 2.2rem; color: var(--mc-dark-brown); text-shadow: 1px 1px 0px #ccc; }
+        
+        .mc-button {
+            background-color: var(--mc-stone); color: white; border: 2px solid #000; padding: 5px 12px; cursor: pointer; font-family: inherit; box-shadow: inset -2px -2px 0px rgba(0,0,0,0.3), inset 2px 2px 0px rgba(255,255,255,0.3); text-decoration: none; display: inline-block; font-size: 0.9rem;
+        }
+        .mc-button:hover { background-color: #888; text-decoration: none; }
+        .mc-button.primary { background-color: var(--mc-green); }
+        .mc-button.primary:hover { background-color: #3e8e41; }
+        .mc-button:disabled { background-color: #aaa; cursor: not-allowed; }
+
+        /* Markdown Styles */
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px; color: var(--mc-dark-brown);
+        }
+        .markdown-body p { margin-bottom: 15px; }
+        .markdown-body ul, .markdown-body ol { margin-left: 25px; margin-bottom: 15px; }
+        .markdown-body blockquote { border-left: 5px solid var(--mc-green); background-color: #f9f9f9; padding: 10px 15px; margin-bottom: 15px; }
+        .markdown-body pre { background-color: #222; color: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; border: 2px solid #000; }
+        .markdown-body code { font-family: monospace; }
+        .markdown-body img { max-width: 100%; border: 2px solid #000; }
+
+        /* Editor */
+        #editor-container { display: none; flex-direction: column; gap: 15px; }
+        #markdown-input {
+            width: 100%; height: 400px; padding: 15px; font-family: monospace; font-size: 1rem; border: 2px solid #000; background-color: #fafafa; resize: vertical; outline: none;
+        }
+
+        /* Sidebar Widgets */
+        .widget { background: white; border: 2px solid #000; box-shadow: 4px 4px 0 rgba(0,0,0,0.2); }
+        .widget-title { padding: 10px 15px; background-color: var(--mc-brown); color: white; font-weight: bold; border-bottom: 2px solid #000; text-shadow: 1px 1px 0 #000; }
+        .widget-content { padding: 15px; }
+        .widget-list { list-style: none; }
+        .widget-list li { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
+        .widget-list li:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-box {
+            background: white; border: 4px solid var(--mc-dark-stone); padding: 25px; width: 400px; box-shadow: inset -4px -4px 0px rgba(0,0,0,0.2), inset 4px 4px 0px rgba(255,255,255,0.8), 5px 5px 0 rgba(0,0,0,0.5); font-family: inherit;
+        }
+        .modal-box h2 { margin-bottom: 20px; color: var(--mc-dark-brown); text-shadow: 1px 1px 0 #ccc; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .input-group input { width: 100%; padding: 8px; border: 2px solid #000; font-family: inherit; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="navbar-brand">
+            <a href="?page=대문"><i class="fa-solid fa-cube"></i> SWIKI</a>
+        </div>
+        <div class="navbar-search" id="search-form">
+            <input type="text" id="search-input" placeholder="문서 제목 검색...">
+            <button onclick="searchPage()"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+        <div class="navbar-menu">
+            <a href="?page=대문"><i class="fa-solid fa-house"></i> 대문</a>
+            <a id="nav-login-btn" onclick="openLoginModal()"><i class="fa-solid fa-right-to-bracket"></i> 관리자 로그인</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Main Content Area -->
+        <main class="content-area">
+            <div class="wiki-header">
+                <h1 class="wiki-title" id="page-title">로딩 중...</h1>
+                <div class="wiki-actions" id="viewer-actions" style="display: none;">
+                    <button class="mc-button" onclick="startEdit()"><i class="fa-solid fa-pen"></i> 문서 편집</button>
+                </div>
+                <div class="wiki-actions" id="editor-actions" style="display: none;">
+                    <button class="mc-button" onclick="cancelEdit()">취소</button>
+                    <button class="mc-button primary" id="save-btn" onclick="savePage()"><i class="fa-solid fa-floppy-disk"></i> Github 커밋</button>
+                </div>
+            </div>
+            
+            <!-- Viewer -->
+            <div id="viewer-container" class="markdown-body">
+                <!-- Markdown rendered here -->
+            </div>
+
+            <!-- Editor -->
+            <div id="editor-container">
+                <div style="background: #e8f5e9; padding: 10px; border-left: 4px solid var(--mc-green); font-size: 0.9rem;">
+                    <strong>안내:</strong> 마크다운(Markdown) 문법으로 작성하세요. 저장 시 Github 저장소로 직접 커밋됩니다.
+                </div>
+                <textarea id="markdown-input" placeholder="이곳에 마크다운으로 내용을 작성하세요..."></textarea>
+            </div>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="widget">
+                <div class="widget-title"><i class="fa-solid fa-compass"></i> 빠른 탐색</div>
+                <div class="widget-content">
+                    <ul class="widget-list">
+                        <li><a href="?page=서버규칙"><i class="fa-solid fa-scroll"></i> 서버 규칙</a></li>
+                        <li><a href="?page=명령어가이드"><i class="fa-solid fa-terminal"></i> 명령어 가이드</a></li>
+                        <li><a href="?page=마을목록"><i class="fa-solid fa-map-location-dot"></i> 마을 목록</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal-box">
+            <h2>관리자 로그인</h2>
+            <div class="input-group">
+                <label>아이디</label>
+                <input type="text" id="login-id" placeholder="ID">
+            </div>
+            <div class="input-group">
+                <label>비밀번호</label>
+                <input type="password" id="login-pw" placeholder="Password">
+            </div>
+            <div class="input-group">
+                <label>Github Token (PAT)</label>
+                <input type="password" id="login-token" placeholder="ghp_...">
+                <small style="color: #666; display: block; margin-top: 5px;">문서 커밋을 위해 토큰이 필요합니다.</small>
+            </div>
+            <div class="modal-actions">
+                <button class="mc-button" onclick="closeLoginModal()">취소</button>
+                <button class="mc-button primary" onclick="processLogin()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GitHub Repository Config
+        const repoOwner = "Jimmy30826";
+        const repoName = "jimmy30826.github.io";
+        
+        // Page Info
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentPage = urlParams.get('page') || "대문";
+        let originalContent = "";
+        let currentFileSha = null;
+
+        // UI Elements
+        const titleEl = document.getElementById('page-title');
+        const viewerEl = document.getElementById('viewer-container');
+        const editorEl = document.getElementById('editor-container');
+        const inputEl = document.getElementById('markdown-input');
+        const viewerActions = document.getElementById('viewer-actions');
+        const editorActions = document.getElementById('editor-actions');
+        const navLoginBtn = document.getElementById('nav-login-btn');
+        const loginModal = document.getElementById('login-modal');
+
+        // Check Login State
+        const ghToken = localStorage.getItem('swiki_gh_token');
+        const loggedIn = !!ghToken;
+
+        if (loggedIn) {
+            navLoginBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> 로그아웃';
+            navLoginBtn.onclick = () => {
+                localStorage.removeItem('swiki_gh_token');
+                window.location.reload();
+            };
+        }
+
+        // Base64 Encoding for Github API (Unicode safe)
+        function utf8ToBase64(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        // Fetch Page Content
+        async function fetchPage() {
+            titleEl.textContent = currentPage;
+            viewerEl.innerHTML = "로딩 중...";
+            
+            let content = null;
+            let exists = false;
+
+            try {
+                if (loggedIn) {
+                    // Logged in: Fetch using Github API for latest raw data and SHA
+                    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs/${currentPage}.md`;
+                    const res = await fetch(apiUrl, {
+                        headers: { 
+                            'Authorization': `token ${ghToken}`
+                        }
+                    });
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        currentFileSha = data.sha;
+                        // decode base64
+                        content = decodeURIComponent(escape(atob(data.content)));
+                        exists = true;
+                    }
+                } else {
+                    // Not logged in: Fetch from static URL
+                    const res = await fetch(`docs/${currentPage}.md?t=${Date.now()}`);
+                    if (res.ok) {
+                        content = await res.text();
+                        exists = true;
+                    }
+                }
+            } catch(e) {
+                console.error(e);
+            }
+
+            if (exists) {
+                originalContent = content;
+                viewerEl.innerHTML = marked.parse(content);
+                if (loggedIn) viewerActions.style.display = 'flex';
+            } else {
+                viewerEl.innerHTML = `<div style="text-align:center; padding: 50px 0;">
+                    <h2><i class="fa-solid fa-triangle-exclamation"></i> 문서가 존재하지 않습니다</h2>
+                    <p style="margin: 15px 0;">'${currentPage}' 문서는 아직 작성되지 않았습니다.</p>
+                    ${loggedIn ? `<button class="mc-button primary" onclick="startEdit()">새 문서 작성하기</button>` : `<p style="color:red">문서를 작성하려면 관리자 로그인이 필요합니다.</p>`}
+                </div>`;
+            }
+        }
+
+        // Edit Modes
+        function startEdit() {
+            viewerEl.style.display = 'none';
+            viewerActions.style.display = 'none';
+            editorEl.style.display = 'flex';
+            editorActions.style.display = 'flex';
+            
+            inputEl.value = originalContent || `# ${currentPage}\n\n`;
+        }
+
+        function cancelEdit() {
+            editorEl.style.display = 'none';
+            editorActions.style.display = 'none';
+            viewerEl.style.display = 'block';
+            
+            // Only show edit button if page exists or if it's the 404 message (handled by reload ideally)
+            if (originalContent) {
+                viewerActions.style.display = 'flex';
+            } else {
+                fetchPage(); // Re-render the "does not exist" view
+            }
+        }
+
+        // Commit to Github
+        async function savePage() {
+            const content = inputEl.value.trim();
+            if (!content) {
+                alert("내용을 입력해주세요.");
+                return;
+            }
+
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 커밋 중...';
+
+            const path = `SWIKI/docs/${currentPage}.md`;
+            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`;
+            
+            const body = {
+                message: `Update ${currentPage} via SWIKI Web`,
+                content: utf8ToBase64(content)
+            };
+            if (currentFileSha) body.sha = currentFileSha;
+
+            try {
+                const res = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${ghToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (res.ok) {
+                    alert("성공적으로 Github에 커밋되었습니다!\n(Github Pages 반영까지 1~2분 정도 소요될 수 있습니다.)");
+                    window.location.reload();
+                } else {
+                    const error = await res.json();
+                    alert("커밋 실패: " + error.message);
+                }
+            } catch(e) {
+                alert("오류 발생: " + e.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Github 커밋';
+            }
+        }
+
+        // Search
+        function searchPage() {
+            const query = document.getElementById('search-input').value.trim();
+            if (query) window.location.href = `?page=${encodeURIComponent(query)}`;
+        }
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchPage();
+        });
+
+        // Login Modal Logic
+        function openLoginModal() { loginModal.style.display = 'flex'; }
+        function closeLoginModal() { loginModal.style.display = 'none'; }
+        
+        async function processLogin() {
+            const id = document.getElementById('login-id').value;
+            const pw = document.getElementById('login-pw').value;
+            const token = document.getElementById('login-token').value;
+
+            if (!id || !pw || !token) {
+                alert("모든 필드를 입력해주세요.");
+                return;
+            }
+
+            try {
+                // Fetch users.json to verify
+                const res = await fetch(`users.json?t=${Date.now()}`);
+                const users = await res.json();
+
+                if (users[id] && users[id] === pw) {
+                    localStorage.setItem('swiki_gh_token', token);
+                    alert("로그인 성공!");
+                    window.location.reload();
+                } else {
+                    alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+                }
+            } catch(e) {
+                alert("로그인 처리 중 오류 발생 (users.json을 불러올 수 없습니다).");
+            }
+        }
+
+        // Initialize
+        fetchPage();
+    </script>
+</body>
+</html>
