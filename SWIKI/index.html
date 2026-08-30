@@ -337,9 +337,8 @@
         
         // Page Info
         const urlParams = new URLSearchParams(window.location.search);
-        let currentPage = urlParams.get('page') || "대문";
         const currentCategory = urlParams.get('category');
-        const currentPage = urlParams.get('page') || (currentCategory ? null : '대문');
+        let currentPage = urlParams.get('page') || (currentCategory ? null : '대문');
 
         // UI Elements
         const titleEl = document.getElementById('page-title');
