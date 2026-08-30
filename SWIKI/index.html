@@ -134,10 +134,28 @@
             background-color: #f5f5f5;
         }
 
+        /* Diff & History Styles */
+        .diff-line { display: block; white-space: pre-wrap; font-family: monospace; padding: 2px 5px; }
+        .diff-add { background-color: #e6ffec; color: #22863a; }
+        .diff-remove { background-color: #ffebe9; color: #cb2431; }
+        .diff-header { color: #0366d6; background-color: #f1f8ff; font-weight: bold; margin-top: 10px; }
+        
+        .history-item { border: 2px solid #ccc; padding: 10px; margin-bottom: 10px; cursor: pointer; background: white; transition: 0.1s; }
+        .history-item:hover { background: #f9f9f9; border-color: var(--mc-green); }
+        .history-item.active { border-color: var(--mc-green); border-width: 3px; }
+
         /* Editor */
-        #editor-container { display: none; flex-direction: column; gap: 15px; }
+        #editor-container { display: none; flex-direction: column; gap: 15px; height: 70vh; }
+        .editor-split { display: flex; gap: 15px; height: 100%; min-height: 500px; }
         #markdown-input {
-            width: 100%; height: 400px; padding: 15px; font-family: monospace; font-size: 1rem; border: 2px solid #000; background-color: #fafafa; resize: vertical; outline: none;
+            flex: 1; height: 100%; padding: 15px; font-family: monospace; font-size: 1rem; border: 2px solid #000; background-color: #fafafa; resize: none; outline: none;
+        }
+        #markdown-preview {
+            flex: 1; height: 100%; padding: 15px; border: 2px dashed #000; background-color: white; overflow-y: auto;
+        }
+        @media (max-width: 768px) {
+            .editor-split { flex-direction: column; }
+            #markdown-input, #markdown-preview { height: 350px; flex: none; }
         }
 
         /* Sidebar Widgets */
@@ -182,9 +200,13 @@
         <!-- Main Content Area -->
         <main class="content-area">
             <div class="wiki-header">
-                <h1 class="wiki-title" id="page-title">로딩 중...</h1>
+                <div>
+                    <h1 class="wiki-title" id="page-title">로딩 중...</h1>
+                    <div id="last-edited-time" style="color: #666; font-size: 0.85rem; margin-top: 5px;"></div>
+                </div>
                 <div class="wiki-actions" id="viewer-actions" style="display: none;">
-                    <button class="mc-button" onclick="startEdit()"><i class="fa-solid fa-pen"></i> 문서 편집</button>
+                    <button class="mc-button" onclick="openHistory()"><i class="fa-solid fa-clock-rotate-left"></i> 문서 역사</button>
+                    <button class="mc-button" id="btn-edit-doc" onclick="startEdit()"><i class="fa-solid fa-pen"></i> 문서 편집</button>
                 </div>
                 <div class="wiki-actions" id="editor-actions" style="display: none;">
                     <button class="mc-button" onclick="cancelEdit()">취소</button>
@@ -200,9 +222,40 @@
             <!-- Editor -->
             <div id="editor-container">
                 <div style="background: #e8f5e9; padding: 10px; border-left: 4px solid var(--mc-green); font-size: 0.9rem;">
-                    <strong>안내:</strong> 마크다운(Markdown) 문법으로 작성하세요. 저장 시 Github 저장소로 직접 커밋됩니다.
+                    <strong>안내:</strong> 마크다운(Markdown) 문법으로 작성하세요. 우측(모바일은 하단)에 실시간 미리보기가 제공됩니다. 저장 시 Github 저장소로 직접 커밋됩니다.
+                    <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <strong style="color: var(--mc-dark-brown);"><i class="fa-solid fa-user-pen"></i> 편집자: <span id="current-editor-id" style="color: #000;"></span></strong>
+                        <input type="text" id="commit-message" placeholder="편집 요약을 입력하세요 (예: 오타 수정, 내용 추가)" style="flex: 1; min-width: 200px; padding: 5px; border: 2px solid var(--mc-stone); font-family: inherit; outline: none;">
+                    </div>
                 </div>
-                <textarea id="markdown-input" placeholder="이곳에 마크다운으로 내용을 작성하세요..."></textarea>
+                <div class="editor-split">
+                    <textarea id="markdown-input" placeholder="이곳에 마크다운으로 내용을 작성하세요..."></textarea>
+                    <div id="markdown-preview" class="markdown-body">
+                        <!-- Preview rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div id="history-container" style="display: none;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2><i class="fa-solid fa-clock-rotate-left"></i> 문서 역사</h2>
+                    <button class="mc-button" onclick="closeHistory()"><i class="fa-solid fa-arrow-left"></i> 돌아가기</button>
+                </div>
+                <div id="history-list" style="margin-top: 20px; max-height: 200px; overflow-y: auto; padding-right:10px;">
+                    <!-- Commits will be listed here -->
+                </div>
+                <div id="history-details" style="display: none; margin-top: 20px; border-top: 2px solid var(--border-color); padding-top: 20px;">
+                    <div style="display:flex; gap:10px; margin-bottom: 15px;">
+                        <button class="mc-button" onclick="showHistoryTab('rendered')">렌더링 뷰</button>
+                        <button class="mc-button" onclick="showHistoryTab('raw')">RAW 데이터</button>
+                        <button class="mc-button" onclick="showHistoryTab('diff')">이전 버전과 비교(Diff)</button>
+                        <button class="mc-button primary" id="btn-revert" onclick="revertToThisVersion()" style="margin-left:auto;"><i class="fa-solid fa-rotate-left"></i> 이 버전으로 되돌리기</button>
+                    </div>
+                    <div id="history-content-rendered" class="markdown-body" style="display:none; border: 2px solid #000; padding:15px; background: #fff;"></div>
+                    <pre id="history-content-raw" style="display:none; border: 2px solid #000; padding:15px; background: #fafafa; white-space: pre-wrap; font-family: monospace;"></pre>
+                    <div id="history-content-diff" style="display:none; border: 2px solid #000; padding:15px; background: #fff;"></div>
+                </div>
             </div>
         </main>
 
@@ -261,6 +314,7 @@
         const viewerEl = document.getElementById('viewer-container');
         const editorEl = document.getElementById('editor-container');
         const inputEl = document.getElementById('markdown-input');
+        const previewEl = document.getElementById('markdown-preview');
         const viewerActions = document.getElementById('viewer-actions');
         const editorActions = document.getElementById('editor-actions');
         const navLoginBtn = document.getElementById('nav-login-btn');
@@ -268,14 +322,17 @@
 
         // Check Login State
         const ghToken = localStorage.getItem('swiki_gh_token');
+        const loggedInUser = localStorage.getItem('swiki_user_id') || '알 수 없음';
         const loggedIn = !!ghToken;
 
         if (loggedIn) {
             navLoginBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> 로그아웃';
             navLoginBtn.onclick = () => {
                 localStorage.removeItem('swiki_gh_token');
+                localStorage.removeItem('swiki_user_id');
                 window.location.reload();
             };
+            document.getElementById('current-editor-id').textContent = loggedInUser;
         }
 
         // Base64 Encoding for Github API (Unicode safe)
@@ -290,22 +347,18 @@
 
         // Preprocess Obsidian-style Wiki Links
         function preprocessMarkdown(text) {
-            // ![[Image Name]] or ![[Image Name|Alt Text]] -> ![Alt Text](Image Name)
             text = text.replace(/!\[\[([^\]]+)\]\]/g, (match, p1) => {
                 const parts = p1.split('|');
                 const src = parts[0].trim();
                 const alt = parts[1] ? parts[1].trim() : src;
                 return `![${alt}](${src})`;
             });
-            
-            // [[Page Name]] or [[Page Name|Display Text]] -> [Display Text](?page=Page Name)
             text = text.replace(/\[\[([^\]]+)\]\]/g, (match, p1) => {
                 const parts = p1.split('|');
                 const page = parts[0].trim();
                 const display = parts[1] ? parts[1].trim() : page;
                 return `[${display}](?page=${encodeURIComponent(page)})`;
             });
-            
             return text;
         }
 
@@ -313,20 +366,13 @@
         async function fetchPage() {
             titleEl.textContent = currentPage;
             viewerEl.innerHTML = "로딩 중...";
-            
             let content = null;
             let exists = false;
 
             try {
                 if (loggedIn) {
-                    // Logged in: Try to fetch from Github API first
                     const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs/${currentPage}.md`;
-                    const res = await fetch(apiUrl, {
-                        headers: { 
-                            'Authorization': `token ${ghToken}`
-                        }
-                    });
-                    
+                    const res = await fetch(apiUrl, { headers: { 'Authorization': `token ${ghToken}` }});
                     if (res.ok) {
                         const data = await res.json();
                         currentFileSha = data.sha;
@@ -334,8 +380,6 @@
                         exists = true;
                     }
                 }
-                
-                // Fallback to local fetch if API failed (e.g. newly created locally but not pushed) or not logged in
                 if (!exists) {
                     const res = await fetch(`docs/${currentPage}.md?t=${Date.now()}`);
                     if (res.ok) {
@@ -343,17 +387,12 @@
                         exists = true;
                     }
                 }
-            } catch(e) {
-                console.error(e);
-            }
+            } catch(e) { console.error(e); }
 
             if (exists) {
                 originalContent = content;
-                // Preprocess wiki links and render markdown (including KaTeX)
                 const preprocessedContent = preprocessMarkdown(content);
                 viewerEl.innerHTML = marked.parse(preprocessedContent);
-                
-                // JS 실행을 위해 <script> 태그 추출 및 재생성
                 const scripts = viewerEl.querySelectorAll('script');
                 scripts.forEach(oldScript => {
                     const newScript = document.createElement('script');
@@ -361,14 +400,35 @@
                     newScript.appendChild(document.createTextNode(oldScript.innerHTML));
                     oldScript.parentNode.replaceChild(newScript, oldScript);
                 });
-
                 if (loggedIn) viewerActions.style.display = 'flex';
+                
+                // 최근 수정 시각 불러오기
+                const lastEditedEl = document.getElementById('last-edited-time');
+                if (lastEditedEl) {
+                    lastEditedEl.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> 수정 시각 확인 중...";
+                    const commitApiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits?path=SWIKI/docs/${currentPage}.md&per_page=1`;
+                    fetch(commitApiUrl, { headers: ghToken ? { 'Authorization': `token ${ghToken}` } : {} })
+                        .then(res => res.ok ? res.json() : [])
+                        .then(commits => {
+                            if (commits.length > 0) {
+                                const date = new Date(commits[0].commit.author.date).toLocaleString();
+                                const msgMatch = commits[0].commit.message.match(/\[(.*?)\]/);
+                                const author = msgMatch ? msgMatch[1] : commits[0].commit.author.name;
+                                lastEditedEl.innerHTML = `<i class='fa-regular fa-clock'></i> 최근 수정: ${date} (by <strong>${author}</strong>)`;
+                            } else {
+                                lastEditedEl.innerHTML = "";
+                            }
+                        })
+                        .catch(() => { lastEditedEl.innerHTML = ""; });
+                }
             } else {
                 viewerEl.innerHTML = `<div style="text-align:center; padding: 50px 0;">
                     <h2><i class="fa-solid fa-triangle-exclamation"></i> 문서가 존재하지 않습니다</h2>
                     <p style="margin: 15px 0;">'${currentPage}' 문서는 아직 작성되지 않았습니다.</p>
                     ${loggedIn ? `<button class="mc-button primary" onclick="startEdit()">새 문서 작성하기</button>` : `<p style="color:red">문서를 작성하려면 관리자 로그인이 필요합니다.</p>`}
                 </div>`;
+                const lastEditedEl = document.getElementById('last-edited-time');
+                if (lastEditedEl) lastEditedEl.innerHTML = "";
             }
         }
 
@@ -378,22 +438,145 @@
             viewerActions.style.display = 'none';
             editorEl.style.display = 'flex';
             editorActions.style.display = 'flex';
-            
             inputEl.value = originalContent || `# ${currentPage}\n\n`;
+            document.getElementById('commit-message').value = ""; // 초기화
+            
+            const lastEditedEl = document.getElementById('last-edited-time');
+            if (lastEditedEl) lastEditedEl.innerHTML = "<span style='color:var(--mc-green)'><i class='fa-solid fa-pen'></i> 편집 모드</span>";
+            
+            inputEl.dispatchEvent(new Event('input'));
         }
 
         function cancelEdit() {
             editorEl.style.display = 'none';
             editorActions.style.display = 'none';
             viewerEl.style.display = 'block';
+            if (originalContent) viewerActions.style.display = 'flex';
+            else fetchPage();
+        }
+
+        // --- History Logic ---
+        const historyEl = document.getElementById('history-container');
+        let selectedHistoryContent = "";
+
+        async function openHistory() {
+            viewerEl.style.display = 'none';
+            viewerActions.style.display = 'none';
+            editorEl.style.display = 'none';
+            historyEl.style.display = 'block';
+            document.getElementById('history-list').innerHTML = "불러오는 중...";
+            document.getElementById('history-details').style.display = 'none';
+
+            const path = `SWIKI/docs/${currentPage}.md`;
+            const url = `https://api.github.com/repos/${repoOwner}/${repoName}/commits?path=${path}`;
             
-            // Only show edit button if page exists or if it's the 404 message (handled by reload ideally)
-            if (originalContent) {
-                viewerActions.style.display = 'flex';
-            } else {
-                fetchPage(); // Re-render the "does not exist" view
+            try {
+                const headers = ghToken ? { 'Authorization': `token ${ghToken}` } : {};
+                const res = await fetch(url, { headers });
+                if (!res.ok) throw new Error("역사를 불러올 수 없습니다.");
+                const commits = await res.json();
+                if (commits.length === 0) {
+                    document.getElementById('history-list').innerHTML = "역사가 없습니다.";
+                    return;
+                }
+                let html = "";
+                commits.forEach(c => {
+                    const date = new Date(c.commit.author.date).toLocaleString();
+                    html += `
+                        <div class="history-item" onclick="loadHistoryDetail('${c.sha}', this)">
+                            <strong>${c.commit.message}</strong><br>
+                            <small>${date} - Github User: ${c.commit.author.name}</small>
+                        </div>
+                    `;
+                });
+                document.getElementById('history-list').innerHTML = html;
+            } catch(e) { document.getElementById('history-list').innerHTML = e.message; }
+        }
+
+        function closeHistory() {
+            historyEl.style.display = 'none';
+            viewerEl.style.display = 'block';
+            if (originalContent) viewerActions.style.display = 'flex';
+        }
+
+        async function loadHistoryDetail(sha, el) {
+            document.querySelectorAll('.history-item').forEach(e => e.classList.remove('active'));
+            if(el) el.classList.add('active');
+            document.getElementById('history-details').style.display = 'block';
+            document.getElementById('history-content-rendered').innerHTML = "로딩 중...";
+            document.getElementById('history-content-raw').textContent = "로딩 중...";
+            document.getElementById('history-content-diff').innerHTML = "로딩 중...";
+            showHistoryTab('rendered');
+
+            const path = `SWIKI/docs/${currentPage}.md`;
+            const headers = ghToken ? { 'Authorization': `token ${ghToken}` } : {};
+            
+            try {
+                const contentUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}?ref=${sha}`;
+                const contentRes = await fetch(contentUrl, { headers });
+                if (!contentRes.ok) throw new Error("Content not found");
+                const contentData = await contentRes.json();
+                
+                selectedHistoryContent = decodeURIComponent(escape(atob(contentData.content)));
+                document.getElementById('history-content-raw').textContent = selectedHistoryContent;
+                const preprocessed = preprocessMarkdown(selectedHistoryContent);
+                document.getElementById('history-content-rendered').innerHTML = marked.parse(preprocessed);
+                
+                const commitUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits/${sha}`;
+                const commitRes = await fetch(commitUrl, { headers });
+                const commitData = await commitRes.json();
+                const fileDiff = commitData.files.find(f => f.filename === path);
+                
+                if (fileDiff && fileDiff.patch) {
+                    const lines = fileDiff.patch.split('\n');
+                    let diffHtml = "";
+                    lines.forEach(line => {
+                        let cls = "";
+                        if (line.startsWith('+')) cls = "diff-add";
+                        else if (line.startsWith('-')) cls = "diff-remove";
+                        else if (line.startsWith('@@')) cls = "diff-header";
+                        const escaped = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        diffHtml += `<span class="diff-line ${cls}">${escaped}</span>`;
+                    });
+                    document.getElementById('history-content-diff').innerHTML = diffHtml;
+                } else {
+                    document.getElementById('history-content-diff').innerHTML = "이전 버전과의 차이점(Diff) 정보가 없거나 새 문서입니다.";
+                }
+            } catch (e) {
+                console.error(e);
+                alert("상세 정보를 불러오는 중 오류가 발생했습니다.");
             }
         }
+
+        function showHistoryTab(tab) {
+            document.getElementById('history-content-rendered').style.display = tab === 'rendered' ? 'block' : 'none';
+            document.getElementById('history-content-raw').style.display = tab === 'raw' ? 'block' : 'none';
+            document.getElementById('history-content-diff').style.display = tab === 'diff' ? 'block' : 'none';
+        }
+
+        function revertToThisVersion() {
+            if (!loggedIn) {
+                alert("복구하려면 관리자 로그인이 필요합니다.");
+                return;
+            }
+            if (!selectedHistoryContent) return;
+            if (confirm("이 버전의 내용으로 편집기에 불러오시겠습니까?")) {
+                closeHistory();
+                startEdit();
+                inputEl.value = selectedHistoryContent;
+                inputEl.dispatchEvent(new Event('input'));
+                document.getElementById('commit-message').value = "문서 롤백 (이전 버전 복구)";
+                alert("편집기에 복구할 버전이 로드되었습니다. 확인 후 'Github 커밋'을 눌러 반영하세요.");
+            }
+        }
+        // --- History Logic End ---
+
+        // Live Preview Event Listener
+        inputEl.addEventListener('input', () => {
+            const rawText = inputEl.value;
+            const preprocessed = preprocessMarkdown(rawText);
+            previewEl.innerHTML = marked.parse(preprocessed);
+        });
 
         // Commit to Github
         async function savePage() {
@@ -403,6 +586,10 @@
                 return;
             }
 
+            const summaryInput = document.getElementById('commit-message').value.trim();
+            const summaryMessage = summaryInput ? summaryInput : `${currentPage} 문서 수정`;
+            const finalCommitMessage = `[${loggedInUser}] ${summaryMessage}`;
+
             const saveBtn = document.getElementById('save-btn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 커밋 중...';
@@ -411,7 +598,7 @@
             const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`;
             
             const body = {
-                message: `Update ${currentPage} via SWIKI Web`,
+                message: finalCommitMessage,
                 content: utf8ToBase64(content)
             };
             if (currentFileSha) body.sha = currentFileSha;
@@ -465,12 +652,12 @@
             }
 
             try {
-                // Fetch users.json to verify
                 const res = await fetch(`users.json?t=${Date.now()}`);
                 const users = await res.json();
 
                 if (users[id] && users[id] === pw) {
                     localStorage.setItem('swiki_gh_token', token);
+                    localStorage.setItem('swiki_user_id', id);
                     alert("로그인 성공!");
                     window.location.reload();
                 } else {
@@ -480,6 +667,9 @@
                 alert("로그인 처리 중 오류 발생 (users.json을 불러올 수 없습니다).");
             }
         }
+
+        // Initialize
+        fetchPage();
 
         // Initialize
         fetchPage();
