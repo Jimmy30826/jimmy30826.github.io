@@ -154,6 +154,28 @@
         .mc-toc .toc-list { list-style: none; padding: 15px; margin: 0; }
         .mc-toc .toc-list li { margin-bottom: 6px; }
 
+        /* Category Box */
+        .mc-category-box {
+            border: 2px solid var(--mc-stone); background-color: #fff; padding: 8px 15px; margin-bottom: 20px; border-radius: 4px; font-size: 0.95rem; display: flex; gap: 10px; align-items: center; box-shadow: 2px 2px 0 rgba(0,0,0,0.1); flex-wrap: wrap;
+        }
+        .mc-category-box strong { color: var(--mc-dark-green); }
+        .mc-category-box a {
+            background-color: #f1f8ff; border: 1px solid #c8e1ff; padding: 2px 10px; border-radius: 20px; color: #0366d6; font-size: 0.85rem;
+        }
+        .mc-category-box a:hover { background-color: #def; text-decoration: none; }
+
+        /* Foldable Navbox (둘러보기 틀) */
+        details.mc-navbox {
+            border: 2px solid var(--mc-brown); margin: 25px 0; background-color: #fff; box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+        }
+        details.mc-navbox summary {
+            background-color: var(--mc-brown); color: white; padding: 10px 15px; font-weight: bold; cursor: pointer; list-style: none; text-shadow: 1px 1px 0 #000; display: flex; justify-content: space-between; align-items: center;
+        }
+        details.mc-navbox summary::-webkit-details-marker { display: none; }
+        details.mc-navbox summary::after { content: "▼ 펼치기"; font-size: 0.8rem; font-weight: normal; color: #ddd; }
+        details[open].mc-navbox summary::after { content: "▲ 접기"; }
+        details.mc-navbox .navbox-content { padding: 15px; border-top: 2px solid #000; }
+
         /* Editor */
         #editor-container { display: none; flex-direction: column; gap: 15px; height: 70vh; }
         .editor-split { display: flex; gap: 15px; height: 100%; min-height: 500px; }
@@ -316,8 +338,8 @@
         // Page Info
         const urlParams = new URLSearchParams(window.location.search);
         let currentPage = urlParams.get('page') || "대문";
-        let originalContent = "";
-        let currentFileSha = null;
+        const currentCategory = urlParams.get('category');
+        const currentPage = urlParams.get('page') || (currentCategory ? null : '대문');
 
         // UI Elements
         const titleEl = document.getElementById('page-title');
@@ -329,6 +351,9 @@
         const editorActions = document.getElementById('editor-actions');
         const navLoginBtn = document.getElementById('nav-login-btn');
         const loginModal = document.getElementById('login-modal');
+
+        let originalContent = "";
+        let currentFileSha = null;
 
         // Check Login State
         const ghToken = localStorage.getItem('swiki_gh_token');
@@ -354,22 +379,134 @@
         if (typeof window.markedKatex !== 'undefined') {
             marked.use(window.markedKatex({ throwOnError: false }));
         }
+        
+        // 엔터 1번으로 줄바꿈 되도록 설정 (GFM Breaks)
+        marked.use({
+            breaks: true,
+            gfm: true
+        });
 
-        // Preprocess Obsidian-style Wiki Links
+        // Preprocess Obsidian-style Wiki Links, Categories & Footnotes
+        let currentCategories = [];
+        let currentFootnotes = [];
         function preprocessMarkdown(text) {
+            currentCategories = [];
+            currentFootnotes = [];
+            
+            // 1. Extract Categories: [[분류:마인크래프트]]
+            text = text.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
+                currentCategories.push(p1.trim());
+                return ""; // Remove from markdown body
+            });
+            
+            // 2. Images: ![[...]]
             text = text.replace(/!\[\[([^\]]+)\]\]/g, (match, p1) => {
                 const parts = p1.split('|');
                 const src = parts[0].trim();
                 const alt = parts[1] ? parts[1].trim() : src;
                 return `![${alt}](${src})`;
             });
+            
+            // 3. Wiki Links: [[...]]
             text = text.replace(/\[\[([^\]]+)\]\]/g, (match, p1) => {
                 const parts = p1.split('|');
                 const page = parts[0].trim();
                 const display = parts[1] ? parts[1].trim() : page;
                 return `[${display}](?page=${encodeURIComponent(page)})`;
             });
+            
+            // 4. Footnotes: [* 주석 내용]
+            text = text.replace(/\[\*\s*(.*?)\]/g, (match, p1) => {
+                currentFootnotes.push(p1);
+                const fnNum = currentFootnotes.length;
+                return `<sup id="fnref-${fnNum}"><a href="#fn-${fnNum}" style="color:var(--mc-green); text-decoration:none;">[${fnNum}]</a></sup>`;
+            });
+            
             return text;
+        }
+
+        // Render Categories Box
+        function renderCategories(container) {
+            const oldBox = container.querySelector('.mc-category-box');
+            if (oldBox) oldBox.remove();
+            
+            if (currentCategories.length > 0) {
+                let html = `<div class="mc-category-box"><i class="fa-solid fa-tags"></i> <strong>분류:</strong> `;
+                html += currentCategories.map(c => `<a href="?category=${encodeURIComponent(c)}">${c}</a>`).join('');
+                html += `</div>`;
+                container.insertBefore(document.createRange().createContextualFragment(html), container.firstChild);
+            }
+        }
+        
+        // Render Footnotes
+        function renderFootnotes(container) {
+            const oldFns = container.querySelector('.mc-footnotes');
+            if (oldFns) oldFns.remove();
+            
+            if (currentFootnotes.length > 0) {
+                let fnHtml = `<div class="mc-footnotes" style="margin-top: 40px; padding-top: 15px; border-top: 2px dashed #ccc; font-size: 0.9rem;">`;
+                currentFootnotes.forEach((fn, idx) => {
+                    const fnNum = idx + 1;
+                    fnHtml += `<div id="fn-${fnNum}" style="margin-bottom: 5px;">
+                        <a href="#fnref-${fnNum}" style="color:var(--mc-dark-green); font-weight:bold; text-decoration:none; margin-right:5px;">[${fnNum}]</a> ${fn}
+                    </div>`;
+                });
+                fnHtml += `</div>`;
+                container.insertAdjacentHTML('beforeend', fnHtml);
+            }
+        }
+
+        // Fetch a document's raw Markdown
+        async function fetchDocumentRaw(pageName) {
+            const path = `SWIKI/docs/${pageName}.md`;
+            if (loggedIn) {
+                try {
+                    const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`, {
+                        headers: { 'Authorization': `token ${ghToken}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        return { content: decodeURIComponent(escape(atob(data.content))), sha: data.sha };
+                    }
+                } catch(e) {}
+            }
+            try {
+                const res = await fetch(`docs/${pageName}.md?t=${Date.now()}`);
+                if (res.ok) {
+                    return { content: await res.text(), sha: null };
+                }
+            } catch(e) {}
+            return null;
+        }
+
+        // Expand Templates: [include(문서명)]
+        async function expandTemplates(text, depth = 0) {
+            if (depth > 3) return text; // Prevent infinite loops
+            
+            const templateRegex = /\[include\((.*?)\)\]/g;
+            let matches;
+            const templatesToFetch = new Set();
+            while ((matches = templateRegex.exec(text)) !== null) {
+                templatesToFetch.add(matches[1].trim());
+            }
+            
+            if (templatesToFetch.size === 0) return text;
+            
+            const templateContents = {};
+            const promises = Array.from(templatesToFetch).map(async (tpl) => {
+                const doc = await fetchDocumentRaw(tpl);
+                if (doc && doc.content) {
+                    templateContents[tpl] = await expandTemplates(doc.content, depth + 1);
+                } else {
+                    templateContents[tpl] = `> **[오류]** '${tpl}' 틀을 불러올 수 없습니다.`;
+                }
+            });
+            
+            await Promise.all(promises);
+            
+            return text.replace(templateRegex, (match, p1) => {
+                return templateContents[p1.trim()];
+            });
         }
 
         // Generate Table of Contents (TOC) and Auto-Numbering
@@ -409,40 +546,85 @@
             }
         }
 
+        // Fetch Category Listing
+        async function fetchCategory(categoryName) {
+            titleEl.textContent = `분류: ${categoryName}`;
+            viewerEl.innerHTML = "<div style='text-align:center; padding: 50px 0;'><i class='fa-solid fa-spinner fa-spin fa-2x'></i><br><br>분류에 속한 문서를 검색 중입니다...</div>";
+            viewerActions.style.display = 'none'; // No edit for category pages
+            
+            try {
+                let files = [];
+                const headers = ghToken ? { 'Authorization': `token ${ghToken}` } : {};
+                const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs`, { headers });
+                
+                if (res.ok) {
+                    files = await res.json();
+                } else {
+                    throw new Error("문서 목록을 가져올 수 없습니다. (API 한도 초과 등)");
+                }
+                
+                const mdFiles = files.filter(f => f.name.endsWith('.md'));
+                const fetchPromises = mdFiles.map(async f => {
+                    const pageName = f.name.replace('.md', '');
+                    const doc = await fetchDocumentRaw(pageName);
+                    if (doc && doc.content && doc.content.includes(`[[분류:${categoryName}]]`)) {
+                        return pageName;
+                    }
+                    return null;
+                });
+                
+                const results = await Promise.all(fetchPromises);
+                const matchedPages = results.filter(p => p !== null).sort();
+                
+                if (matchedPages.length > 0) {
+                    let html = `<div style="background: #e8f5e9; padding: 15px; border-left: 4px solid var(--mc-green); margin-bottom: 20px;">
+                        이 분류에 총 <strong>${matchedPages.length}</strong>개의 문서가 있습니다.
+                    </div><ul style="list-style-type: square; padding-left: 20px;">`;
+                    matchedPages.forEach(p => {
+                        html += `<li style="margin-bottom: 10px;"><a href="?page=${encodeURIComponent(p)}" style="font-size:1.1rem; color:#0366d6; text-decoration:none; border-bottom: 1px solid #c8e1ff;">${p}</a></li>`;
+                    });
+                    html += `</ul>`;
+                    viewerEl.innerHTML = html;
+                } else {
+                    viewerEl.innerHTML = `<div style="padding: 20px;"><i class="fa-solid fa-circle-info"></i> 이 분류에 속한 문서가 없습니다.</div>`;
+                }
+            } catch(e) {
+                viewerEl.innerHTML = `<div style="color:red; padding: 20px;"><i class="fa-solid fa-triangle-exclamation"></i> 분류 검색 중 오류가 발생했습니다: ${e.message}</div>`;
+            }
+        }
+
         // Fetch Page Content
         async function fetchPage() {
+            if (currentCategory) {
+                fetchCategory(currentCategory);
+                return;
+            }
+            
             titleEl.textContent = currentPage;
             viewerEl.innerHTML = "로딩 중...";
-            let content = null;
-            let exists = false;
-
-            try {
-                if (loggedIn) {
-                    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs/${currentPage}.md`;
-                    const res = await fetch(apiUrl, { headers: { 'Authorization': `token ${ghToken}` }});
-                    if (res.ok) {
-                        const data = await res.json();
-                        currentFileSha = data.sha;
-                        content = decodeURIComponent(escape(atob(data.content)));
-                        exists = true;
-                    }
-                }
-                if (!exists) {
-                    const res = await fetch(`docs/${currentPage}.md?t=${Date.now()}`);
-                    if (res.ok) {
-                        content = await res.text();
-                        exists = true;
-                    }
-                }
-            } catch(e) { console.error(e); }
+            
+            const doc = await fetchDocumentRaw(currentPage);
+            const exists = doc !== null;
 
             if (exists) {
-                originalContent = content;
-                const preprocessedContent = preprocessMarkdown(content);
+                originalContent = doc.content;
+                currentFileSha = doc.sha;
+                
+                // 1. Expand templates (async)
+                let expandedContent = await expandTemplates(originalContent);
+                
+                // 2. Preprocess categories, wiki links, footnotes
+                const preprocessedContent = preprocessMarkdown(expandedContent);
+                
+                // 3. Render Markdown
                 viewerEl.innerHTML = marked.parse(preprocessedContent);
                 
+                // 4. Post-processing (TOC, Categories, Footnotes)
                 generateTOC(viewerEl);
+                renderCategories(viewerEl);
+                renderFootnotes(viewerEl);
                 
+                // 5. Re-evaluate scripts
                 const scripts = viewerEl.querySelectorAll('script');
                 scripts.forEach(oldScript => {
                     const newScript = document.createElement('script');
@@ -450,6 +632,7 @@
                     newScript.appendChild(document.createTextNode(oldScript.innerHTML));
                     oldScript.parentNode.replaceChild(newScript, oldScript);
                 });
+                
                 if (loggedIn) viewerActions.style.display = 'flex';
                 
                 // 최근 수정 시각 불러오기
@@ -621,12 +804,19 @@
         }
         // --- History Logic End ---
 
-        // Live Preview Event Listener
+        // Live Preview Event Listener with Debounce
+        let previewDebounceTimer;
         inputEl.addEventListener('input', () => {
-            const rawText = inputEl.value;
-            const preprocessed = preprocessMarkdown(rawText);
-            previewEl.innerHTML = marked.parse(preprocessed);
-            generateTOC(previewEl);
+            clearTimeout(previewDebounceTimer);
+            previewDebounceTimer = setTimeout(async () => {
+                const rawText = inputEl.value;
+                const expanded = await expandTemplates(rawText);
+                const preprocessed = preprocessMarkdown(expanded);
+                previewEl.innerHTML = marked.parse(preprocessed);
+                generateTOC(previewEl);
+                renderCategories(previewEl);
+                renderFootnotes(previewEl);
+            }, 300);
         });
 
         // Commit to Github
