@@ -144,6 +144,16 @@
         .history-item:hover { background: #f9f9f9; border-color: var(--mc-green); }
         .history-item.active { border-color: var(--mc-green); border-width: 3px; }
 
+        /* TOC Styles */
+        .mc-toc {
+            border: 2px solid #000; background-color: #fafafa; display: inline-block; min-width: 250px; margin-bottom: 20px; margin-top: 10px; box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+        }
+        .mc-toc .toc-title {
+            background-color: var(--mc-stone); color: white; padding: 5px 15px; font-weight: bold; border-bottom: 2px solid #000; text-shadow: 1px 1px 0 #000;
+        }
+        .mc-toc .toc-list { list-style: none; padding: 15px; margin: 0; }
+        .mc-toc .toc-list li { margin-bottom: 6px; }
+
         /* Editor */
         #editor-container { display: none; flex-direction: column; gap: 15px; height: 70vh; }
         .editor-split { display: flex; gap: 15px; height: 100%; min-height: 500px; }
@@ -362,6 +372,43 @@
             return text;
         }
 
+        // Generate Table of Contents (TOC) and Auto-Numbering
+        function generateTOC(container) {
+            const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+            let counters = [0, 0, 0, 0, 0, 0];
+            let tocHtml = "<div class='mc-toc'><div class='toc-title'>목차</div><ul class='toc-list'>";
+            let hasToc = false;
+
+            headings.forEach(heading => {
+                const level = parseInt(heading.tagName.substring(1));
+                for (let i = level; i < 6; i++) counters[i] = 0;
+                counters[level - 1]++;
+                
+                let numberStr = "";
+                for (let i = 0; i < level; i++) numberStr += counters[i] + ".";
+                
+                const slug = "sec-" + numberStr.replace(/\./g, '-').slice(0, -1);
+                heading.id = slug;
+                
+                const rawText = heading.textContent.trim();
+                heading.innerHTML = `<span style="color:var(--mc-dark-green); margin-right:5px; font-weight:normal;">${numberStr}</span>${heading.innerHTML}`;
+                
+                const padding = (level - 1) * 20;
+                tocHtml += `<li style="margin-left: ${padding}px"><a href="#${slug}"><span style="color:var(--mc-dark-green); margin-right:5px;">${numberStr}</span>${rawText}</a></li>`;
+                hasToc = true;
+            });
+            tocHtml += "</ul></div>";
+
+            if (hasToc) {
+                const tocPlaceholder = Array.from(container.querySelectorAll('p')).find(p => p.textContent.trim() === '[목차]' || p.textContent.trim() === '[TOC]');
+                if (tocPlaceholder) {
+                    tocPlaceholder.outerHTML = tocHtml;
+                } else {
+                    container.insertBefore(document.createRange().createContextualFragment(tocHtml), container.firstChild);
+                }
+            }
+        }
+
         // Fetch Page Content
         async function fetchPage() {
             titleEl.textContent = currentPage;
@@ -393,6 +440,9 @@
                 originalContent = content;
                 const preprocessedContent = preprocessMarkdown(content);
                 viewerEl.innerHTML = marked.parse(preprocessedContent);
+                
+                generateTOC(viewerEl);
+                
                 const scripts = viewerEl.querySelectorAll('script');
                 scripts.forEach(oldScript => {
                     const newScript = document.createElement('script');
@@ -576,6 +626,7 @@
             const rawText = inputEl.value;
             const preprocessed = preprocessMarkdown(rawText);
             previewEl.innerHTML = marked.parse(preprocessed);
+            generateTOC(previewEl);
         });
 
         // Commit to Github
