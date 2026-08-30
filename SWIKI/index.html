@@ -176,6 +176,14 @@
         details[open].mc-navbox summary::after { content: "▲ 접기"; }
         details.mc-navbox .navbox-content { padding: 15px; border-top: 2px solid #000; }
 
+        /* Search Autocomplete */
+        .search-box { position: relative; }
+        .autocomplete-dropdown {
+            position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #000; border-top: none; z-index: 100; display: none; max-height: 200px; overflow-y: auto; box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+        }
+        .autocomplete-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; color: #333; font-weight: bold; }
+        .autocomplete-item:hover { background-color: #e8f5e9; color: var(--mc-dark-green); }
+
         /* Editor */
         #editor-container { display: none; flex-direction: column; gap: 15px; height: 70vh; }
         .editor-split { display: flex; gap: 15px; height: 100%; min-height: 500px; }
@@ -218,9 +226,10 @@
         <div class="navbar-brand">
             <a href="?page=대문"><i class="fa-solid fa-cube"></i> SWIKI</a>
         </div>
-        <div class="navbar-search" id="search-form">
+        <div class="navbar-search search-box" id="search-form">
             <input type="text" id="search-input" placeholder="문서 제목 검색...">
             <button onclick="searchPage()"><i class="fa-solid fa-magnifying-glass"></i></button>
+            <div id="search-autocomplete" class="autocomplete-dropdown"></div>
         </div>
         <div class="navbar-menu">
             <a href="?page=대문"><i class="fa-solid fa-house"></i> 대문</a>
@@ -338,7 +347,8 @@
         // Page Info
         const urlParams = new URLSearchParams(window.location.search);
         const currentCategory = urlParams.get('category');
-        let currentPage = urlParams.get('page') || (currentCategory ? null : '대문');
+        const currentSearch = urlParams.get('search');
+        let currentPage = urlParams.get('page') || (currentCategory || currentSearch ? null : '대문');
 
         // UI Elements
         const titleEl = document.getElementById('page-title');
@@ -552,19 +562,10 @@
             viewerActions.style.display = 'none'; // No edit for category pages
             
             try {
-                let files = [];
-                const headers = ghToken ? { 'Authorization': `token ${ghToken}` } : {};
-                const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs`, { headers });
+                const mdFiles = await fetchAllDocuments();
+                if (mdFiles.length === 0) throw new Error("문서 목록을 가져올 수 없거나 비어 있습니다.");
                 
-                if (res.ok) {
-                    files = await res.json();
-                } else {
-                    throw new Error("문서 목록을 가져올 수 없습니다. (API 한도 초과 등)");
-                }
-                
-                const mdFiles = files.filter(f => f.name.endsWith('.md'));
-                const fetchPromises = mdFiles.map(async f => {
-                    const pageName = f.name.replace('.md', '');
+                const fetchPromises = mdFiles.map(async pageName => {
                     const doc = await fetchDocumentRaw(pageName);
                     if (doc && doc.content && doc.content.includes(`[[분류:${categoryName}]]`)) {
                         return pageName;
@@ -868,14 +869,140 @@
             }
         }
 
-        // Search
-        function searchPage() {
-            const query = document.getElementById('search-input').value.trim();
-            if (query) window.location.href = `?page=${encodeURIComponent(query)}`;
+        // --- Advanced Search & Autocomplete ---
+        let allDocumentsCache = null;
+        async function fetchAllDocuments() {
+            if (allDocumentsCache !== null) return allDocumentsCache;
+            try {
+                let files = [];
+                const headers = ghToken ? { 'Authorization': `token ${ghToken}` } : {};
+                const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs`, { headers });
+                if (res.ok) {
+                    files = await res.json();
+                    allDocumentsCache = files.filter(f => f.name.endsWith('.md')).map(f => f.name.replace('.md', ''));
+                    return allDocumentsCache;
+                }
+            } catch(e) {}
+            return [];
         }
-        document.getElementById('search-input').addEventListener('keypress', function(e) {
+
+        const searchInputBox = document.getElementById('search-input');
+        const autocompleteEl = document.getElementById('search-autocomplete');
+
+        searchInputBox.addEventListener('input', async (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            if (!query) {
+                autocompleteEl.style.display = 'none';
+                return;
+            }
+            
+            const docs = await fetchAllDocuments();
+            const matches = docs.filter(d => d.toLowerCase().includes(query)).slice(0, 10);
+            
+            if (matches.length > 0) {
+                autocompleteEl.innerHTML = matches.map(m => `<div class="autocomplete-item" onclick="window.location.href='?page=${encodeURIComponent(m)}'">${m}</div>`).join('');
+                autocompleteEl.style.display = 'block';
+            } else {
+                autocompleteEl.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchInputBox.contains(e.target) && !autocompleteEl.contains(e.target)) {
+                autocompleteEl.style.display = 'none';
+            }
+        });
+
+        async function searchPage() {
+            const query = searchInputBox.value.trim();
+            if (!query) return;
+            
+            const docs = await fetchAllDocuments();
+            const exactMatch = docs.find(d => d.toLowerCase() === query.toLowerCase());
+            
+            if (exactMatch) {
+                window.location.href = `?page=${encodeURIComponent(exactMatch)}`;
+            } else {
+                window.location.href = `?search=${encodeURIComponent(query)}`;
+            }
+        }
+        searchInputBox.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') searchPage();
         });
+
+        async function renderSearchResults(query) {
+            titleEl.textContent = `검색 결과: ${query}`;
+            viewerEl.innerHTML = "<div style='text-align:center; padding: 50px 0;'><i class='fa-solid fa-spinner fa-spin fa-2x'></i><br><br>문서의 내용을 검색 중입니다...</div>";
+            viewerActions.style.display = 'none';
+            
+            try {
+                const docs = await fetchAllDocuments();
+                
+                const fetchPromises = docs.map(async pageName => {
+                    const doc = await fetchDocumentRaw(pageName);
+                    return { name: pageName, content: doc ? doc.content : "" };
+                });
+                const allContents = await Promise.all(fetchPromises);
+                
+                const titleMatches = [];
+                const contentMatches = [];
+                const qLower = query.toLowerCase();
+                
+                allContents.forEach(item => {
+                    if (item.name.toLowerCase().includes(qLower)) {
+                        titleMatches.push(item.name);
+                    } else if (item.content.toLowerCase().includes(qLower)) {
+                        const idx = item.content.toLowerCase().indexOf(qLower);
+                        const start = Math.max(0, idx - 40);
+                        const end = Math.min(item.content.length, idx + query.length + 40);
+                        let snippet = item.content.substring(start, end).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        
+                        const regex = new RegExp(query, 'gi');
+                        snippet = snippet.replace(regex, match => `<strong style="color:var(--mc-dark-green); background:#e8f5e9;">${match}</strong>`);
+                        
+                        contentMatches.push({ name: item.name, snippet: `...${snippet}...` });
+                    }
+                });
+                
+                let html = `<div style="margin-bottom: 30px;">
+                    <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin-bottom: 15px;">
+                        <strong>'${query}'</strong> 문서가 존재하지 않습니다.
+                    </div>
+                    <button class="mc-button primary" style="width: 100%; font-size: 1.1rem; padding: 12px;" onclick="window.location.href='?page=${encodeURIComponent(query)}'">
+                        <i class="fa-solid fa-file-circle-plus"></i> '${query}' 문서 새로 작성하기
+                    </button>
+                </div>`;
+                
+                if (titleMatches.length > 0) {
+                    html += `<h3><i class="fa-solid fa-heading"></i> 제목 일치 문서</h3><ul style="list-style-type: square; padding-left: 20px; margin-bottom: 30px;">`;
+                    titleMatches.forEach(name => {
+                        html += `<li style="margin-bottom: 8px;"><a href="?page=${encodeURIComponent(name)}" style="font-size:1.1rem; color:#0366d6; text-decoration:none; border-bottom: 1px solid #c8e1ff;">${name}</a></li>`;
+                    });
+                    html += `</ul>`;
+                }
+                
+                if (contentMatches.length > 0) {
+                    html += `<h3><i class="fa-solid fa-align-left"></i> 내용 일치 문서</h3><ul style="list-style-type: none; padding: 0;">`;
+                    contentMatches.forEach(match => {
+                        html += `<li style="margin-bottom: 15px; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px;">
+                            <a href="?page=${encodeURIComponent(match.name)}" style="font-size:1.1rem; color:#0366d6; font-weight:bold; text-decoration:none;">${match.name}</a>
+                            <div style="font-size: 0.95rem; color: #555; margin-top: 8px; line-height: 1.5;">${match.snippet}</div>
+                        </li>`;
+                    });
+                    html += `</ul>`;
+                }
+                
+                if (titleMatches.length === 0 && contentMatches.length === 0) {
+                    html += `<div style="padding: 20px; text-align: center; color: #666; border: 1px dashed #ccc;">다른 문서에서도 검색 결과를 찾을 수 없습니다.</div>`;
+                }
+                
+                viewerEl.innerHTML = html;
+                
+            } catch(e) {
+                viewerEl.innerHTML = `<div style="color:red; padding: 20px;"><i class="fa-solid fa-triangle-exclamation"></i> 검색 중 오류가 발생했습니다: ${e.message}</div>`;
+            }
+        }
+        // --- Advanced Search & Autocomplete End ---
 
         // Login Modal Logic
         function openLoginModal() { loginModal.style.display = 'flex'; }
@@ -908,11 +1035,12 @@
             }
         }
 
-        // Initialize
-        fetchPage();
-
-        // Initialize
-        fetchPage();
+        // Initialize Routing
+        if (currentSearch) {
+            renderSearchResults(currentSearch);
+        } else {
+            fetchPage(); // fetchPage internally handles currentCategory
+        }
     </script>
 </body>
 </html>
