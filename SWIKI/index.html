@@ -269,10 +269,10 @@
                         <input type="text" id="commit-message" placeholder="편집 요약을 입력하세요 (예: 오타 수정, 내용 추가)" style="flex: 1; min-width: 200px; padding: 5px; border: 2px solid var(--mc-stone); font-family: inherit; outline: none;">
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
-                        <button class="mc-button" onclick="document.getElementById('image-upload-input').click()" title="서버에 이미지를 업로드합니다">
-                            <i class="fa-solid fa-image"></i> 이미지 업로드
+                        <button class="mc-button" onclick="document.getElementById('image-upload-input').click()" title="서버에 이미지/동영상/오디오를 업로드합니다">
+                            <i class="fa-solid fa-photo-film"></i> 미디어 업로드
                         </button>
-                        <input type="file" id="image-upload-input" accept="image/*" style="display:none">
+                        <input type="file" id="image-upload-input" accept="image/*, video/*, audio/*" style="display:none">
                         <span id="upload-status" style="font-size: 0.9rem; color: #555;"></span>
                     </div>
                 </div>
@@ -876,7 +876,7 @@
             }
         }
         
-        // --- Image Upload Logic ---
+        // --- Media Upload Logic ---
         const imageUploadInput = document.getElementById('image-upload-input');
         const uploadStatus = document.getElementById('upload-status');
         
@@ -884,28 +884,29 @@
             const file = e.target.files[0];
             if (!file) return;
             if (!loggedIn) {
-                alert("이미지를 업로드하려면 먼저 로그인해야 합니다.");
+                alert("미디어를 업로드하려면 먼저 로그인해야 합니다.");
+                return;
+            }
+            if (file.size > 25 * 1024 * 1024) {
+                alert("GitHub API 제한으로 인해 25MB 이하의 파일만 업로드할 수 있습니다.");
                 return;
             }
             
             uploadStatus.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> 업로드 중...";
             
             try {
-                // Read file as Base64
                 const reader = new FileReader();
                 reader.onload = async (ev) => {
                     const dataUrl = ev.target.result;
                     const base64Data = dataUrl.split(',')[1];
                     
-                    // Generate safe filename (remove spaces, append timestamp)
                     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-                    const fileName = `img_${Date.now()}_${safeName}`;
+                    const fileName = `media_${Date.now()}_${safeName}`;
                     const path = `SWIKI/assets/${fileName}`;
                     
-                    // Upload to GitHub
                     const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`;
                     const body = {
-                        message: `[${loggedInUser}] 이미지 업로드: ${file.name}`,
+                        message: `[${loggedInUser}] 미디어 업로드: ${file.name}`,
                         content: base64Data
                     };
                     
@@ -917,18 +918,23 @@
                     
                     if (res.ok) {
                         uploadStatus.innerHTML = "<i class='fa-solid fa-check' style='color:green;'></i> 업로드 성공!";
-                        // Insert markdown syntax at cursor
                         const start = inputEl.selectionStart;
                         const end = inputEl.selectionEnd;
                         const text = inputEl.value;
-                        const imgMarkdown = `\n![[assets/${fileName}]]\n`;
                         
-                        inputEl.value = text.substring(0, start) + imgMarkdown + text.substring(end);
-                        inputEl.selectionStart = inputEl.selectionEnd = start + imgMarkdown.length;
+                        let mediaMarkdown = "";
+                        if (file.type.startsWith('video/')) {
+                            mediaMarkdown = `\n<video controls style="max-width:100%; border-radius:5px;"><source src="assets/${fileName}" type="${file.type}"></video>\n`;
+                        } else if (file.type.startsWith('audio/')) {
+                            mediaMarkdown = `\n<audio controls src="assets/${fileName}"></audio>\n`;
+                        } else {
+                            mediaMarkdown = `\n![[assets/${fileName}]]\n`;
+                        }
                         
-                        // Trigger preview update
+                        inputEl.value = text.substring(0, start) + mediaMarkdown + text.substring(end);
+                        inputEl.selectionStart = inputEl.selectionEnd = start + mediaMarkdown.length;
+                        
                         inputEl.dispatchEvent(new Event('input'));
-                        
                         setTimeout(() => uploadStatus.innerHTML = "", 3000);
                     } else {
                         const err = await res.json();
@@ -939,11 +945,9 @@
             } catch(e) {
                 uploadStatus.innerHTML = `<span style="color:red;"><i class="fa-solid fa-triangle-exclamation"></i> 오류: ${e.message}</span>`;
             }
-            
-            // Reset input
             imageUploadInput.value = "";
         });
-        // --- Image Upload Logic End ---
+        // --- Media Upload Logic End ---
 
         // --- Advanced Search & Autocomplete ---
         let allDocumentsCache = null;
