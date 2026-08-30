@@ -1,15 +1,35 @@
 {
-    "last_synced": "2026-08-30 03:10:49",
+    "last_synced": "2026-08-30 10:32:46",
     "sync_interval_hours": 6,
     "total_count": 7,
     "data": {
-        "10146-10073-01": {
+        "00034-10011-01": {
             "floor_selection_sign": {
-                "offset_x": 0,
-                "offset_z": 0,
+                "offset_x": 1,
+                "offset_z": 1,
                 "offset_y": 1
             },
-            "id": 25,
+            "id": 18,
+            "elevator_door": {
+                "dx": 1,
+                "dy": 2,
+                "dz": 0,
+                "x": 33,
+                "z": -12,
+                "y": -33
+            },
+            "rope": {
+                "end": {
+                    "x": 33,
+                    "z": -11,
+                    "y": -8
+                },
+                "start": {
+                    "x": 33,
+                    "z": -11,
+                    "y": -29
+                }
+            },
             "bounds": {
                 "size": {
                     "dz": 1,
@@ -17,79 +37,93 @@
                     "dy": 4
                 },
                 "point0": {
-                    "x": -146,
-                    "z": -73,
-                    "y": -9
+                    "x": 34,
+                    "z": -11,
+                    "y": -30
                 },
                 "min": {
-                    "x": -146,
-                    "z": -74,
-                    "y": -13
+                    "x": 33,
+                    "z": -12,
+                    "y": -34
                 },
                 "point1": {
-                    "x": -145,
-                    "z": -74,
-                    "y": -13
-                }
-            },
-            "rope": {
-                "end": {
-                    "x": -145,
-                    "z": -74,
-                    "y": 51
-                },
-                "start": {
-                    "x": -145,
-                    "z": -74,
-                    "y": -8
+                    "x": 33,
+                    "z": -12,
+                    "y": -34
                 }
             },
             "floors": [
                 {
                     "has_call_button": 1,
+                    "display_name": "F",
+                    "door_bounds": {
+                        "min": {
+                            "x": 33,
+                            "z": -13,
+                            "y": -33
+                        }
+                    },
+                    "y": -34,
+                    "call_button_pos": {
+                        "x": 35,
+                        "z": -14,
+                        "y": -33
+                    },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
+                        "hover_event": {
+                            "value": [
+                                {
+                                    "color": "white",
+                                    "text": "F"
+                                }
+                            ],
+                            "action": "show_text"
+                        },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
-                            "1"
-                        ],
-                        "translate": "translation.test.args"
+                            "-1"
+                        ]
                     },
-                    "floor_number": "1",
-                    "y": -13,
-                    "call_button_pos": {
-                        "y": -12,
-                        "z": -71,
-                        "x": -144
-                    }
+                    "floor_number": "-1",
+                    "has_door": 1
                 },
                 {
                     "has_call_button": 1,
+                    "door_bounds": {
+                        "min": {
+                            "x": 33,
+                            "z": -13,
+                            "y": -12
+                        }
+                    },
+                    "y": -13,
+                    "call_button_pos": {
+                        "x": 35,
+                        "z": -14,
+                        "y": -12
+                    },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
-                            "2"
-                        ],
-                        "translate": "translation.test.args"
+                            "1"
+                        ]
                     },
-                    "floor_number": "2",
-                    "y": 46,
-                    "call_button_pos": {
-                        "y": 47,
-                        "z": -71,
-                        "x": -144
-                    }
+                    "floor_number": "1",
+                    "has_door": 1
                 }
             ],
-            "delay": 0,
-            "serial": "10146-10073-01"
+            "delay": 2,
+            "serial": "00034-10011-01"
         },
         "10131-00316-01": {
             "floor_selection_sign": {
@@ -146,16 +180,16 @@
                     "display_name": "???",
                     "door_bounds": {
                         "min": {
-                            "y": -62,
+                            "x": -134,
                             "z": 320,
-                            "x": -134
+                            "y": -62
                         }
                     },
                     "y": -63,
                     "call_button_pos": {
-                        "y": -62,
+                        "x": -131,
                         "z": 321,
-                        "x": -131
+                        "y": -62
                     },
                     "raw_name": {
                         "color": "white",
@@ -171,8 +205,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "-1"
                         ]
@@ -185,16 +219,16 @@
                     "display_name": "Ground",
                     "door_bounds": {
                         "min": {
-                            "y": -12,
+                            "x": -134,
                             "z": 320,
-                            "x": -134
+                            "y": -12
                         }
                     },
                     "y": -13,
                     "call_button_pos": {
-                        "y": -12,
+                        "x": -131,
                         "z": 321,
-                        "x": -131
+                        "y": -12
                     },
                     "raw_name": {
                         "color": "white",
@@ -210,8 +244,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "1"
                         ]
@@ -224,16 +258,16 @@
                     "display_name": "subway",
                     "door_bounds": {
                         "min": {
-                            "y": 41,
+                            "x": -134,
                             "z": 320,
-                            "x": -134
+                            "y": 41
                         }
                     },
                     "y": 40,
                     "call_button_pos": {
-                        "y": 41,
+                        "x": -131,
                         "z": 321,
-                        "x": -131
+                        "y": 41
                     },
                     "raw_name": {
                         "color": "white",
@@ -249,8 +283,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "2"
                         ]
@@ -263,16 +297,16 @@
                     "display_name": "Café & Skywalk",
                     "door_bounds": {
                         "min": {
-                            "y": 201,
+                            "x": -134,
                             "z": 320,
-                            "x": -134
+                            "y": 201
                         }
                     },
                     "y": 200,
                     "call_button_pos": {
-                        "y": 201,
+                        "x": -131,
                         "z": 321,
-                        "x": -131
+                        "y": 201
                     },
                     "raw_name": {
                         "color": "white",
@@ -288,8 +322,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "3"
                         ]
@@ -302,16 +336,16 @@
                     "display_name": "256!!!!!!",
                     "door_bounds": {
                         "min": {
-                            "y": 256,
+                            "x": -134,
                             "z": 320,
-                            "x": -134
+                            "y": 256
                         }
                     },
                     "y": 255,
                     "call_button_pos": {
-                        "y": 256,
+                        "x": -131,
                         "z": 321,
-                        "x": -131
+                        "y": 256
                     },
                     "raw_name": {
                         "color": "white",
@@ -327,8 +361,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "4"
                         ]
@@ -341,16 +375,16 @@
                     "display_name": "observation deck",
                     "door_bounds": {
                         "min": {
-                            "y": 314,
+                            "x": -134,
                             "z": 320,
-                            "x": -134
+                            "y": 314
                         }
                     },
                     "y": 313,
                     "call_button_pos": {
-                        "y": 314,
+                        "x": -131,
                         "z": 321,
-                        "x": -131
+                        "y": 314
                     },
                     "raw_name": {
                         "color": "white",
@@ -366,8 +400,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "5"
                         ]
@@ -434,16 +468,16 @@
                     "display_name": "underground",
                     "door_bounds": {
                         "min": {
-                            "y": -42,
+                            "x": -155,
                             "z": 27,
-                            "x": -155
+                            "y": -42
                         }
                     },
                     "y": -43,
                     "call_button_pos": {
-                        "y": -42,
+                        "x": -156,
                         "z": 30,
-                        "x": -156
+                        "y": -42
                     },
                     "raw_name": {
                         "color": "white",
@@ -454,15 +488,15 @@
                                     "color": "white",
                                     "text": "underground"
                                 },
-                                "\n",
+                                " ",
                                 "farm"
                             ],
                             "action": "show_text"
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "-2"
                         ]
@@ -475,16 +509,16 @@
                     "display_name": "village",
                     "door_bounds": {
                         "min": {
-                            "y": -18,
+                            "x": -150,
                             "z": 27,
-                            "x": -150
+                            "y": -18
                         }
                     },
                     "y": -19,
                     "call_button_pos": {
-                        "y": -18,
+                        "x": -149,
                         "z": 27,
-                        "x": -149
+                        "y": -18
                     },
                     "raw_name": {
                         "color": "white",
@@ -500,8 +534,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "-1"
                         ]
@@ -514,16 +548,16 @@
                     "display_name": "ground&subway",
                     "door_bounds": {
                         "min": {
-                            "y": -12,
+                            "x": -150,
                             "z": 27,
-                            "x": -150
+                            "y": -12
                         }
                     },
                     "y": -13,
                     "call_button_pos": {
-                        "y": -12,
+                        "x": -149,
                         "z": 26,
-                        "x": -149
+                        "y": -12
                     },
                     "raw_name": {
                         "color": "white",
@@ -539,8 +573,8 @@
                         },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "1"
                         ]
@@ -607,159 +641,151 @@
                     "has_door": 1,
                     "y": -13,
                     "call_button_pos": {
-                        "y": -12,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": -12
                     }
                 },
                 {
                     "has_call_button": 1,
+                    "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 2,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 2
                         }
                     },
-                    "has_door": 1,
                     "y": 1,
                     "call_button_pos": {
-                        "y": 2,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 2
                     }
                 },
                 {
                     "has_call_button": 1,
+                    "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 10,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 10
                         }
                     },
-                    "has_door": 1,
                     "y": 9,
                     "call_button_pos": {
-                        "y": 10,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 10
                     }
                 },
                 {
                     "has_call_button": 1,
+                    "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 20,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 20
                         }
                     },
-                    "has_door": 1,
                     "y": 19,
                     "call_button_pos": {
-                        "y": 20,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 20
                     }
                 },
                 {
                     "has_call_button": 1,
+                    "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 30,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 30
                         }
                     },
-                    "has_door": 1,
                     "y": 29,
                     "call_button_pos": {
-                        "y": 30,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 30
                     }
                 },
                 {
                     "has_call_button": 1,
+                    "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 40,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 40
                         }
                     },
-                    "has_door": 1,
                     "y": 39,
                     "call_button_pos": {
-                        "y": 40,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 40
                     }
                 },
                 {
                     "has_call_button": 1,
+                    "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 47,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 47
                         }
                     },
-                    "has_door": 1,
                     "y": 46,
                     "call_button_pos": {
-                        "y": 47,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 47
                     }
                 },
                 {
                     "has_call_button": 1,
+                    "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 52,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 52
                         }
                     },
-                    "has_door": 1,
                     "y": 51,
                     "call_button_pos": {
-                        "y": 52,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 52
                     }
                 }
             ],
             "delay": 0,
             "serial": "10165-10036-99"
         },
-        "00034-10011-01": {
+        "10146-10073-01": {
             "floor_selection_sign": {
-                "offset_x": 1,
-                "offset_z": 1,
+                "offset_x": 0,
+                "offset_z": 0,
                 "offset_y": 1
             },
-            "id": 18,
-            "elevator_door": {
-                "dx": 1,
-                "dy": 2,
-                "dz": 0,
-                "x": 33,
-                "z": -12,
-                "y": -33
-            },
+            "id": 25,
             "rope": {
                 "end": {
-                    "x": 33,
-                    "z": -11,
-                    "y": -8
+                    "x": -145,
+                    "z": -74,
+                    "y": 51
                 },
                 "start": {
-                    "x": 33,
-                    "z": -11,
-                    "y": -29
+                    "x": -145,
+                    "z": -74,
+                    "y": -8
                 }
             },
             "bounds": {
@@ -769,54 +795,140 @@
                     "dy": 4
                 },
                 "point0": {
-                    "x": 34,
-                    "z": -11,
-                    "y": -30
+                    "x": -146,
+                    "z": -73,
+                    "y": -9
                 },
                 "min": {
-                    "x": 33,
-                    "z": -12,
-                    "y": -34
+                    "x": -146,
+                    "z": -74,
+                    "y": -13
                 },
                 "point1": {
-                    "x": 33,
-                    "z": -12,
-                    "y": -34
+                    "x": -145,
+                    "z": -74,
+                    "y": -13
                 }
             },
             "floors": [
                 {
                     "has_call_button": 1,
-                    "display_name": "F",
+                    "raw_name": {
+                        "color": "white",
+                        "translate": "translation.test.args",
+                        "with": [
+                            {
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
+                            },
+                            "1"
+                        ]
+                    },
+                    "floor_number": "1",
+                    "y": -13,
+                    "call_button_pos": {
+                        "x": -144,
+                        "z": -71,
+                        "y": -12
+                    }
+                },
+                {
+                    "has_call_button": 1,
+                    "raw_name": {
+                        "color": "white",
+                        "translate": "translation.test.args",
+                        "with": [
+                            {
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
+                            },
+                            "2"
+                        ]
+                    },
+                    "floor_number": "2",
+                    "y": 46,
+                    "call_button_pos": {
+                        "x": -144,
+                        "z": -71,
+                        "y": 47
+                    }
+                }
+            ],
+            "delay": 0,
+            "serial": "10146-10073-01"
+        },
+        "10014-10009-01": {
+            "floor_selection_sign": {
+                "offset_x": 1,
+                "offset_z": 1,
+                "offset_y": 1
+            },
+            "id": 21,
+            "elevator_door": {
+                "dx": 1,
+                "dy": 1,
+                "dz": 0,
+                "x": -13,
+                "z": -6,
+                "y": -23
+            },
+            "rope": {
+                "end": {
+                    "x": -12,
+                    "z": -8,
+                    "y": -9
+                },
+                "start": {
+                    "x": -13,
+                    "z": -7,
+                    "y": -20
+                }
+            },
+            "bounds": {
+                "size": {
+                    "dz": 3,
+                    "dx": 3,
+                    "dy": 3
+                },
+                "point0": {
+                    "x": -14,
+                    "z": -9,
+                    "y": -21
+                },
+                "min": {
+                    "x": -14,
+                    "z": -9,
+                    "y": -24
+                },
+                "point1": {
+                    "x": -11,
+                    "z": -6,
+                    "y": -24
+                }
+            },
+            "floors": [
+                {
+                    "has_call_button": 1,
                     "door_bounds": {
                         "min": {
-                            "y": -33,
-                            "z": -13,
-                            "x": 33
+                            "x": -13,
+                            "z": -5,
+                            "y": -23
                         }
                     },
-                    "y": -34,
+                    "y": -24,
                     "call_button_pos": {
-                        "y": -33,
-                        "z": -14,
-                        "x": 35
+                        "x": -14,
+                        "z": -4,
+                        "y": -23
                     },
                     "raw_name": {
                         "color": "white",
                         "translate": "translation.test.args",
-                        "hover_event": {
-                            "value": [
-                                {
-                                    "color": "white",
-                                    "text": "F"
-                                }
-                            ],
-                            "action": "show_text"
-                        },
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "-1"
                         ]
@@ -828,155 +940,34 @@
                     "has_call_button": 1,
                     "door_bounds": {
                         "min": {
-                            "y": -12,
-                            "z": -13,
-                            "x": 33
+                            "x": -13,
+                            "z": -5,
+                            "y": -12
                         }
                     },
                     "y": -13,
                     "call_button_pos": {
-                        "y": -12,
-                        "z": -14,
-                        "x": 35
+                        "x": -14,
+                        "z": -4,
+                        "y": -12
                     },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "1"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "1",
                     "has_door": 1
                 }
             ],
-            "delay": 2,
-            "serial": "00034-10011-01"
-        },
-        "serial": [
-            "10165-10036-99",
-            "10146-10073-01",
-            "00034-10011-01",
-            "00088-10011-01",
-            "10151-00026-01",
-            "10131-00316-01",
-            "10014-10009-01"
-        ],
-        "00088-10011-01": {
-            "floor_selection_sign": {
-                "offset_x": 1,
-                "offset_z": 1,
-                "offset_y": 1
-            },
-            "id": 19,
-            "elevator_door": {
-                "dx": 1,
-                "dy": 2,
-                "dz": 0,
-                "x": 87,
-                "z": -12,
-                "y": -33
-            },
-            "rope": {
-                "end": {
-                    "x": 87,
-                    "z": -11,
-                    "y": -8
-                },
-                "start": {
-                    "x": 87,
-                    "z": -11,
-                    "y": -29
-                }
-            },
-            "bounds": {
-                "size": {
-                    "dz": 1,
-                    "dx": 1,
-                    "dy": 4
-                },
-                "point0": {
-                    "x": 88,
-                    "z": -11,
-                    "y": -30
-                },
-                "min": {
-                    "x": 87,
-                    "z": -12,
-                    "y": -34
-                },
-                "point1": {
-                    "x": 87,
-                    "z": -12,
-                    "y": -34
-                }
-            },
-            "floors": [
-                {
-                    "has_call_button": 1,
-                    "door_bounds": {
-                        "min": {
-                            "y": -33,
-                            "z": -13,
-                            "x": 87
-                        }
-                    },
-                    "y": -34,
-                    "call_button_pos": {
-                        "y": -33,
-                        "z": -14,
-                        "x": 86
-                    },
-                    "raw_name": {
-                        "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "-1"
-                        ],
-                        "translate": "translation.test.args"
-                    },
-                    "floor_number": "-1",
-                    "has_door": 1
-                },
-                {
-                    "has_call_button": 1,
-                    "door_bounds": {
-                        "min": {
-                            "y": -12,
-                            "z": -13,
-                            "x": 87
-                        }
-                    },
-                    "y": -13,
-                    "call_button_pos": {
-                        "y": -12,
-                        "z": -14,
-                        "x": 86
-                    },
-                    "raw_name": {
-                        "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "1"
-                        ],
-                        "translate": "translation.test.args"
-                    },
-                    "floor_number": "1",
-                    "has_door": 1
-                }
-            ],
-            "delay": 2,
-            "serial": "00088-10011-01"
+            "delay": 4,
+            "serial": "10014-10009-01"
         },
         "10165-10036-01": {
             "floor_selection_sign": {
@@ -1033,9 +1024,9 @@
                     "has_door": 1,
                     "y": -13,
                     "call_button_pos": {
-                        "y": -12,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": -12
                     }
                 },
                 {
@@ -1043,16 +1034,16 @@
                     "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 2,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 2
                         }
                     },
                     "y": 1,
                     "call_button_pos": {
-                        "y": 2,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 2
                     }
                 },
                 {
@@ -1060,16 +1051,16 @@
                     "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 10,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 10
                         }
                     },
                     "y": 9,
                     "call_button_pos": {
-                        "y": 10,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 10
                     }
                 },
                 {
@@ -1077,16 +1068,16 @@
                     "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 20,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 20
                         }
                     },
                     "y": 19,
                     "call_button_pos": {
-                        "y": 20,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 20
                     }
                 },
                 {
@@ -1094,16 +1085,16 @@
                     "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 30,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 30
                         }
                     },
                     "y": 29,
                     "call_button_pos": {
-                        "y": 30,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 30
                     }
                 },
                 {
@@ -1111,16 +1102,16 @@
                     "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 40,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 40
                         }
                     },
                     "y": 39,
                     "call_button_pos": {
-                        "y": 40,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 40
                     }
                 },
                 {
@@ -1128,16 +1119,16 @@
                     "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 47,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 47
                         }
                     },
                     "y": 46,
                     "call_button_pos": {
-                        "y": 47,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 47
                     }
                 },
                 {
@@ -1145,69 +1136,69 @@
                     "has_door": 1,
                     "door_bounds": {
                         "min": {
-                            "y": 52,
+                            "x": -161,
                             "z": -38,
-                            "x": -161
+                            "y": 52
                         }
                     },
                     "y": 51,
                     "call_button_pos": {
-                        "y": 52,
+                        "x": -161,
                         "z": -39,
-                        "x": -161
+                        "y": 52
                     }
                 }
             ],
             "delay": 0,
             "serial": "10165-10036-01"
         },
-        "10014-10009-01": {
+        "00088-10011-01": {
             "floor_selection_sign": {
                 "offset_x": 1,
                 "offset_z": 1,
                 "offset_y": 1
             },
-            "id": 21,
+            "id": 19,
             "elevator_door": {
                 "dx": 1,
-                "dy": 1,
+                "dy": 2,
                 "dz": 0,
-                "x": -13,
-                "z": -6,
-                "y": -23
+                "x": 87,
+                "z": -12,
+                "y": -33
             },
             "rope": {
                 "end": {
-                    "x": -12,
-                    "z": -8,
-                    "y": -9
+                    "x": 87,
+                    "z": -11,
+                    "y": -8
                 },
                 "start": {
-                    "x": -13,
-                    "z": -7,
-                    "y": -20
+                    "x": 87,
+                    "z": -11,
+                    "y": -29
                 }
             },
             "bounds": {
                 "size": {
-                    "dz": 3,
-                    "dx": 3,
-                    "dy": 3
+                    "dz": 1,
+                    "dx": 1,
+                    "dy": 4
                 },
                 "point0": {
-                    "x": -14,
-                    "z": -9,
-                    "y": -21
+                    "x": 88,
+                    "z": -11,
+                    "y": -30
                 },
                 "min": {
-                    "x": -14,
-                    "z": -9,
-                    "y": -24
+                    "x": 87,
+                    "z": -12,
+                    "y": -34
                 },
                 "point1": {
-                    "x": -11,
-                    "z": -6,
-                    "y": -24
+                    "x": 87,
+                    "z": -12,
+                    "y": -34
                 }
             },
             "floors": [
@@ -1215,27 +1206,27 @@
                     "has_call_button": 1,
                     "door_bounds": {
                         "min": {
-                            "y": -23,
-                            "z": -5,
-                            "x": -13
+                            "x": 87,
+                            "z": -13,
+                            "y": -33
                         }
                     },
-                    "y": -24,
+                    "y": -34,
                     "call_button_pos": {
-                        "y": -23,
-                        "z": -4,
-                        "x": -14
+                        "x": 86,
+                        "z": -14,
+                        "y": -33
                     },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "-1"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "-1",
                     "has_door": 1
@@ -1244,34 +1235,43 @@
                     "has_call_button": 1,
                     "door_bounds": {
                         "min": {
-                            "y": -12,
-                            "z": -5,
-                            "x": -13
+                            "x": 87,
+                            "z": -13,
+                            "y": -12
                         }
                     },
                     "y": -13,
                     "call_button_pos": {
-                        "y": -12,
-                        "z": -4,
-                        "x": -14
+                        "x": 86,
+                        "z": -14,
+                        "y": -12
                     },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
+                                "translate": "customizable_elevators.floor",
+                                "fallback": "Floor"
                             },
                             "1"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "1",
                     "has_door": 1
                 }
             ],
-            "delay": 4,
-            "serial": "10014-10009-01"
-        }
+            "delay": 2,
+            "serial": "00088-10011-01"
+        },
+        "serial": [
+            "10165-10036-99",
+            "10146-10073-01",
+            "00034-10011-01",
+            "00088-10011-01",
+            "10151-00026-01",
+            "10131-00316-01",
+            "10014-10009-01"
+        ]
     }
 }
