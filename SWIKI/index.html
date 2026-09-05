@@ -423,21 +423,67 @@
                 return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
             });
             
-            // 4. Basic Tables (|| A || B ||)
-            text = text.replace(/(^\|\|.*\|\|\s*(?:\n|$))+/gm, (match) => {
+            // 4. Folding (접기/펼치기)
+            text = text.replace(/\{\{\{#\!folding\s+\[(.*?)\]\n([\s\S]*?)\}\}\}/g, (match, title, content) => {
+                return `<details class="mc-navbox" style="margin:10px 0;"><summary>${title}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone);">\n\n${content}\n\n</div></details>`;
+            });
+
+            // 5. Wiki style (정렬 등)
+            text = text.replace(/\{\{\{#\!wiki\s+style=(["'])(.*?)\1\n([\s\S]*?)\}\}\}/g, (match, quote, style, content) => {
+                return `<div style="${style}">\n\n${content}\n\n</div>`;
+            });
+
+            // 6. Advanced Tables (나무위키 표 지원)
+            text = text.replace(/(?:^\|\|.*?\|\|\s*(?:\n|$))+/gm, (match) => {
                 let lines = match.trim().split('\n');
-                let result = '';
-                lines.forEach((line, index) => {
-                    let parsedLine = line.replace(/\|\|/g, '|');
-                    result += parsedLine + '\n';
-                    if (index === 0) {
-                        let cols = (line.match(/\|\|/g) || []).length - 1;
-                        if (cols > 0) {
-                            result += '|' + '---|'.repeat(cols) + '\n';
+                let html = '<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:auto; border:2px solid var(--mc-stone);">';
+                let tableStyle = '';
+
+                html += '<tbody>';
+                lines.forEach(line => {
+                    if (!line.trim().startsWith('||')) return;
+                    let rowStyle = '';
+                    let trHtml = '';
+                    
+                    let cells = line.split('||');
+                    cells = cells.slice(1, cells.length - 1); // Remove empty first/last parts from split
+                    
+                    cells.forEach(cell => {
+                        let cellAttrHtml = '';
+                        let cellStyle = '';
+                        let innerText = cell;
+                        
+                        let attrRegex = /<([^>]+)>/g;
+                        let attrMatch;
+                        while ((attrMatch = attrRegex.exec(innerText)) !== null) {
+                            let attr = attrMatch[1].trim();
+                            if (attr.startsWith('-')) cellAttrHtml += ` colspan="${attr.substring(1)}"`;
+                            else if (attr.startsWith('|')) cellAttrHtml += ` rowspan="${attr.substring(1)}"`;
+                            else if (attr === ':') cellStyle += 'text-align:center;';
+                            else if (attr === ')') cellStyle += 'text-align:right;';
+                            else if (attr === '(') cellStyle += 'text-align:left;';
+                            else if (attr.startsWith('bgcolor=')) cellStyle += `background-color:${attr.split('=')[1]};`;
+                            else if (attr.startsWith('color=')) cellStyle += `color:${attr.split('=')[1]};`;
+                            else if (attr.startsWith('width=')) cellStyle += `width:${attr.split('=')[1]};`;
+                            else if (attr.startsWith('rowbgcolor=')) rowStyle += `background-color:${attr.split('=')[1]};`;
+                            else if (attr.startsWith('tablebgcolor=')) tableStyle += `background-color:${attr.split('=')[1]};`;
+                            else if (attr.startsWith('tablewidth=')) tableStyle += `width:${attr.split('=')[1]};`;
+                            else if (attr.startsWith('tablealign=')) tableStyle += `margin:${attr.split('=')[1] === 'center' ? 'auto' : '0'};`;
                         }
-                    }
+                        
+                        innerText = innerText.replace(/^(<[^>]+>)+/, '').trim();
+                        trHtml += `<td style="border:2px solid var(--mc-stone); padding:10px; ${cellStyle}"${cellAttrHtml}>${innerText}</td>`;
+                    });
+                    
+                    html += `<tr style="${rowStyle}">${trHtml}</tr>`;
                 });
-                return result + '\n';
+                html += '</tbody></table>';
+                
+                if (tableStyle) {
+                    html = html.replace('<table class="mc-table" style="', `<table class="mc-table" style="${tableStyle} `);
+                }
+                
+                return html + '\n';
             });
             
             // 5. Namuwiki Media (File) Macro
