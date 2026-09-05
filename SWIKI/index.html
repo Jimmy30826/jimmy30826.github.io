@@ -115,7 +115,7 @@
         /* Table Styles (Minecraft Theme) */
         .markdown-body table {
             border-collapse: collapse;
-            width: 100%;
+            width: auto;
             margin-bottom: 15px;
             background-color: white;
             border: 2px solid #000;
@@ -407,23 +407,36 @@
         let currentCategories = [];
         let footnoteCount = 1;
 
-        window.showFootnote = function(contentHtml) {
-            let dialog = document.getElementById('fn-dialog');
-            if (!dialog) {
-                dialog = document.createElement('dialog');
-                dialog.id = 'fn-dialog';
-                dialog.style.cssText = "padding:20px; border:1px solid var(--mc-stone); border-radius:8px; background:var(--mc-bg-color); color:var(--mc-text-color); max-width:80vw; max-height:80vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.2); outline:none;";
-                document.body.appendChild(dialog);
+        window.showFootnote = function(contentHtml, event) {
+            let tooltip = document.getElementById('fn-tooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'fn-tooltip';
+                tooltip.style.cssText = "position:absolute; padding:15px; border:2px solid var(--mc-stone); border-radius:8px; background:var(--mc-bg-color, white); color:var(--mc-text-color, black); max-width:350px; box-shadow:0 6px 15px rgba(0,0,0,0.2); z-index:9999; font-size:0.95em; line-height:1.5;";
+                document.body.appendChild(tooltip);
                 
-                dialog.addEventListener('click', (e) => {
-                    const rect = dialog.getBoundingClientRect();
-                    if (e.clientY < rect.top || e.clientY > rect.bottom || e.clientX < rect.left || e.clientX > rect.right) {
-                        dialog.close();
+                document.addEventListener('click', (e) => {
+                    if (tooltip.style.display === 'block' && !tooltip.contains(e.target)) {
+                        tooltip.style.display = 'none';
                     }
                 });
             }
-            dialog.innerHTML = `<div style="margin-bottom:15px; line-height:1.6; font-size:1.05em;">${contentHtml}</div><div style="text-align:right;"><button onclick="this.parentElement.parentElement.close()" style="padding:6px 16px; background:var(--mc-stone); border:none; border-radius:4px; cursor:pointer; color:var(--mc-text-color); font-weight:bold;">닫기</button></div>`;
-            dialog.showModal();
+            
+            tooltip.innerHTML = contentHtml;
+            tooltip.style.display = 'block';
+            
+            let rect = event.target.getBoundingClientRect();
+            let top = rect.bottom + window.scrollY + 8;
+            let left = rect.left + window.scrollX - 10;
+            
+            if (left + 350 > window.innerWidth) {
+                left = window.innerWidth - 370;
+                if (left < 10) left = 10;
+            }
+            
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+            event.stopPropagation();
         };
 
         function parseNamuTables(text) {
@@ -435,7 +448,7 @@
 
             function flushTable() {
                 if (!inTable) return;
-                let tHtml = '<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:auto; border:2px solid var(--mc-stone);">';
+                let tHtml = '<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:max-content; border:2px solid var(--mc-stone);">';
                 let tStyle = tableStyle;
                 tHtml += '<tbody>';
                 rows.forEach(row => {
@@ -462,7 +475,7 @@
                 });
                 tHtml += '</tbody></table>';
                 if (tStyle) {
-                    tHtml = tHtml.replace('<table class="mc-table" style="', `<table class="mc-table" style="${tStyle} `);
+                    tHtml = tHtml.replace(';">', `; ${tStyle}">`);
                 }
                 outLines.push(tHtml);
                 inTable = false;
@@ -731,7 +744,7 @@
                             if (!fnName) footnoteCount++;
                             
                             let safeContent = encodeURIComponent(fnText);
-                            return `<sup id="fnref:${displayLabel}"><a style="color:var(--mc-green); cursor:pointer;" onclick="window.showFootnote(decodeURIComponent('${safeContent}'))">[${displayLabel}]</a></sup>`;
+                            return `<sup id="fnref:${displayLabel}"><a style="color:var(--mc-green); cursor:pointer;" class="fn-link" onclick="window.showFootnote(decodeURIComponent('${safeContent}'), event)">[${displayLabel}]</a></sup>`;
                         }
                     });
                 }
