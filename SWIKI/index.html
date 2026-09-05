@@ -412,7 +412,7 @@
             if (!tooltip) {
                 tooltip = document.createElement('div');
                 tooltip.id = 'fn-tooltip';
-                tooltip.style.cssText = "position:absolute; padding:15px; border:2px solid var(--mc-stone); border-radius:8px; background:var(--mc-bg-color, white); color:var(--mc-text-color, black); max-width:350px; box-shadow:0 6px 15px rgba(0,0,0,0.2); z-index:9999; font-size:0.95em; line-height:1.5;";
+                tooltip.style.cssText = "position:absolute; padding:15px; border:2px solid var(--mc-stone); border-radius:8px; background:white; color:black; color:var(--mc-text-color, black); max-width:350px; box-shadow:0 6px 15px rgba(0,0,0,0.2); z-index:9999; font-size:0.95em; line-height:1.5;";
                 document.body.appendChild(tooltip);
                 
                 document.addEventListener('click', (e) => {
@@ -444,15 +444,19 @@
             let outLines = [];
             let inTable = false;
             let tableStyle = "";
+            let tableBorderColor = "var(--mc-stone)";
+            let colBg = {};
+            let colColor = {};
             let rows = [];
 
             function flushTable() {
                 if (!inTable) return;
-                let tHtml = '<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:max-content; border:2px solid var(--mc-stone);">';
+                let tHtml = `<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:max-content; border:2px solid ${tableBorderColor};">`;
                 let tStyle = tableStyle;
                 tHtml += '<tbody>';
                 rows.forEach(row => {
                     tHtml += `<tr style="${row.rowStyle}">`;
+                    let colIdx = 0;
                     row.cells.forEach(cell => {
                         let innerText = cell.content.trim();
                         let stripped = innerText.trimStart();
@@ -469,7 +473,12 @@
                             }
                             if (!found) break; 
                         }
-                        tHtml += `<td style="border:2px solid var(--mc-stone); padding:10px; ${cell.cellStyle}"${cell.cellAttrHtml}>${stripped}</td>`;
+                        
+                        let appliedBg = cell.hasBg ? "" : (colBg[colIdx] ? `background-color:${colBg[colIdx]};` : "");
+                        let appliedColor = cell.hasColor ? "" : (colColor[colIdx] ? `color:${colColor[colIdx]};` : "");
+                        
+                        tHtml += `<td style="border:2px solid ${tableBorderColor}; padding:10px; ${cell.cellStyle} ${appliedBg} ${appliedColor}"${cell.cellAttrHtml}>${stripped}</td>`;
+                        colIdx += cell.colspan;
                     });
                     tHtml += '</tr>';
                 });
@@ -480,51 +489,76 @@
                 outLines.push(tHtml);
                 inTable = false;
                 tableStyle = "";
+                tableBorderColor = "var(--mc-stone)";
+                colBg = {};
+                colColor = {};
                 rows = [];
             }
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i];
                 if (line.trim().startsWith('||')) {
-                    if (!inTable) inTable = true;
+                    if (!inTable) {
+                        inTable = true;
+                        colBg = {};
+                        colColor = {};
+                    }
                     let cells = line.split('||');
                     if (cells.length > 0 && cells[0].trim() === '') cells.shift();
                     if (cells.length > 0 && cells[cells.length - 1].trim() === '') cells.pop();
                     if (cells.length === 0) cells = [""];
                     
+                    let colIdxTracker = 0;
                     let parsedCells = cells.map(cell => {
                         let cellAttrHtml = '';
                         let cellStyle = '';
                         let innerText = cell;
                         let rowStyle = '';
                         let matchedAttrs = [];
+                        let colspan = 1;
+                        let hasBg = false;
+                        let hasColor = false;
                         
                         let attrRegex = /<([^>]+)>/g;
                         let attrMatch;
                         while ((attrMatch = attrRegex.exec(innerText)) !== null) {
                             let attr = attrMatch[1].trim();
                             let isAttr = false;
-                            if (attr.startsWith('-')) { cellAttrHtml += ` colspan="${attr.substring(1)}"`; isAttr = true; }
-                            else if (attr.startsWith('|')) { cellAttrHtml += ` rowspan="${attr.substring(1)}"`; isAttr = true; }
-                            else if (attr === ':') { cellStyle += 'text-align:center;'; isAttr = true; }
-                            else if (attr === ')') { cellStyle += 'text-align:right;'; isAttr = true; }
-                            else if (attr === '(') { cellStyle += 'text-align:left;'; isAttr = true; }
-                            else if (attr === 'nopad') { cellStyle += 'padding:0;'; isAttr = true; }
-                            else if (attr === 'keepall') { cellStyle += 'word-break:keep-all;'; isAttr = true; }
-                            else if (attr.startsWith('bgcolor=')) { cellStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('color=')) { cellStyle += `color:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('width=')) { cellStyle += `width:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('rowbgcolor=')) { rowStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('colbgcolor=')) { cellStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('colcolor=')) { cellStyle += `color:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('tablebordercolor=')) { tableStyle += `border-color:${attr.split('=')[1]}; border-width:2px; border-style:solid;`; isAttr = true; }
-                            else if (attr.startsWith('tablebgcolor=')) { tableStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('tablewidth=')) { tableStyle += `width:${attr.split('=')[1]};`; isAttr = true; }
-                            else if (attr.startsWith('tablealign=')) { tableStyle += `margin:${attr.split('=')[1] === 'right' ? '0 0 0 auto' : (attr.split('=')[1] === 'center' ? 'auto' : '0')}; float:${attr.split('=')[1] === 'right' ? 'right' : 'none'};`; isAttr = true; }
+                            
+                            let eqIdx = attr.indexOf('=');
+                            let key = eqIdx !== -1 ? attr.substring(0, eqIdx) : attr;
+                            let val = eqIdx !== -1 ? attr.substring(eqIdx + 1) : "";
+                            
+                            // add px if purely numeric
+                            if (val && !isNaN(val)) val += 'px';
+                            
+                            if (key.startsWith('-')) { colspan = parseInt(key.substring(1)); cellAttrHtml += ` colspan="${colspan}"`; isAttr = true; }
+                            else if (key.startsWith('|')) { cellAttrHtml += ` rowspan="${key.substring(1)}"`; isAttr = true; }
+                            else if (key === ':') { cellStyle += 'text-align:center;'; isAttr = true; }
+                            else if (key === ')') { cellStyle += 'text-align:right;'; isAttr = true; }
+                            else if (key === '(') { cellStyle += 'text-align:left;'; isAttr = true; }
+                            else if (key === 'nopad') { cellStyle += 'padding:0;'; isAttr = true; }
+                            else if (key === 'keepall') { cellStyle += 'word-break:keep-all;'; isAttr = true; }
+                            else if (key === 'bgcolor') { cellStyle += `background-color:${val};`; hasBg = true; isAttr = true; }
+                            else if (key === 'color') { cellStyle += `color:${val};`; hasColor = true; isAttr = true; }
+                            else if (key === 'width') { cellStyle += `width:${val};`; isAttr = true; }
+                            else if (key === 'height') { cellStyle += `height:${val};`; isAttr = true; }
+                            else if (key === 'rowbgcolor') { rowStyle += `background-color:${val};`; isAttr = true; }
+                            else if (key === 'rowcolor') { rowStyle += `color:${val};`; isAttr = true; }
+                            else if (key === 'colbgcolor') { colBg[colIdxTracker] = val; cellStyle += `background-color:${val};`; hasBg = true; isAttr = true; }
+                            else if (key === 'colcolor') { colColor[colIdxTracker] = val; cellStyle += `color:${val};`; hasColor = true; isAttr = true; }
+                            else if (key === 'tablebordercolor') { tableBorderColor = val; tableStyle += `border-color:${val};`; isAttr = true; }
+                            else if (key === 'tablebgcolor') { tableStyle += `background-color:${val};`; isAttr = true; }
+                            else if (key === 'tablewidth') { tableStyle += `width:${val};`; isAttr = true; }
+                            else if (key === 'tablecolor') { tableStyle += `color:${val};`; isAttr = true; }
+                            else if (key === 'tablealign') { tableStyle += `margin:${val === 'right' ? '0 0 0 auto' : (val === 'center' ? 'auto' : '0')}; float:${val === 'right' ? 'right' : 'none'};`; isAttr = true; }
                             
                             if (isAttr) matchedAttrs.push(attrMatch[0]);
                         }
-                        return { cellAttrHtml, cellStyle, content: innerText, rowStyle, matchedAttrs };
+                        
+                        let result = { cellAttrHtml, cellStyle, content: innerText, rowStyle, matchedAttrs, colspan, hasBg, hasColor };
+                        colIdxTracker += colspan;
+                        return result;
                     });
                     
                     let finalRowStyle = "";
