@@ -404,107 +404,106 @@
         });
 
         // --- NamuMark (the seed) Syntax Converter ---
-        function convertNamuMark(text) {
-            let placeholders = [];
-
-            // 0. Extract Block Macros (Folding, Wiki style) to placeholders
-            // This prevents their internal newlines from breaking Table regex
-            text = text.replace(/\{\{\{#\!folding\s+\[(.*?)\]\s*([\s\S]*?)\}\}\}/g, (match, title, content) => {
-                let html = `<details class="mc-navbox" style="margin:10px 0;"><summary style="cursor:pointer; color:#0366d6; font-weight:bold;">[펼치기 / 접기] ${title}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone); margin-top:10px;">\n\n${content}\n\n</div></details>`;
-                placeholders.push(html);
-                return `__MACRO_${placeholders.length - 1}__`;
-            });
-
-            text = text.replace(/\{\{\{#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*?)\}\}\}/g, (match, quote, style, content) => {
-                let html = `<div style="${style}">\n\n${content}\n\n</div>`;
-                placeholders.push(html);
-                return `__MACRO_${placeholders.length - 1}__`;
-            });
-
-            // 1. Headers (== Heading ==)
-            text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
-                return '#'.repeat(p1.length) + ' ' + p2;
-            });
-
-            // 2. Text Formatting
-            text = text.replace(/'''(.*?)'''/g, '**$1**'); // Bold
-            text = text.replace(/''(.*?)''/g, '*$1*');     // Italic
-            text = text.replace(/--(.*?)--/g, '~~$1~~');   // Strikethrough
-            text = text.replace(/__(.*?)__/g, '<u>$1</u>'); // Underline
-            text = text.replace(/\^\^(.*?)\^\^/g, '<sup>$1</sup>'); // Superscript
-            text = text.replace(/,,(.*?),,/g, '<sub>$1</sub>'); // Subscript
-            
-            // 3. YouTube Macro
-            text = text.replace(/\[youtube\((.*?)\)\]/gi, (match, p1) => {
-                let id = p1.split(',')[0].trim();
-                return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
-            });
-
-            // 3.5. Misc Macros (br, math, ruby, clearfix, date, age, dday)
-            text = text.replace(/\[br\]/gi, '<br>');
-            text = text.replace(/\[math\((.*?)\)\]/gi, '$$$1$$');
-            text = text.replace(/\[ruby\((.*?),\s*ruby=(.*?)\)\]/gi, '<ruby>$1<rt>$2</rt></ruby>');
-            text = text.replace(/\[clearfix\]/gi, '<div style="clear:both;"></div>');
-            
-            let dateStr = new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'});
-            text = text.replace(/\[date\]/gi, dateStr);
-            
-            text = text.replace(/\[age\((.*?)\)\]/gi, (match, p1) => {
-                let birth = new Date(p1);
-                if(isNaN(birth)) return match;
-                let ageDifMs = Date.now() - birth.getTime();
-                let ageDate = new Date(ageDifMs);
-                return Math.abs(ageDate.getUTCFullYear() - 1970);
-            });
-            
-            text = text.replace(/\[dday\((.*?)\)\]/gi, (match, p1) => {
-                let target = new Date(p1);
-                if(isNaN(target)) return match;
-                let diff = Math.ceil((target.getTime() - Date.now()) / (1000 * 3600 * 24));
-                return diff > 0 ? `D-${diff}` : (diff === 0 ? `D-Day` : `D+${Math.abs(diff)}`);
-            });
-            
-            // 4.5. Text Color & Size: {{{#color text}}} or {{{+size text}}}
-            let styleRegex = /\{\{\{([#+\-][^ \n]+)\s+([\s\S]*?)\}\}\}/g;
-            let matched = true;
-            while(matched) {
-                matched = false;
-                text = text.replace(styleRegex, (match, p1, p2) => {
-                    matched = true;
-                    let styleStr = "";
-                    if (p1.startsWith('#')) {
-                        let colors = p1.split(','); // e.g., #f00,#FF3838
-                        styleStr = `color:${colors[0]};`;
-                    } else if (p1.startsWith('+') || p1.startsWith('-')) {
-                        let size = parseInt(p1);
-                        if (!isNaN(size)) {
-                            let scale = 1 + (size * 0.2); // Rough scale for sizes
-                            styleStr = `font-size:${scale}em;`;
+        let currentFootnotes = [];
+        
+        function parseNamuBraces(text) {
+            let i = 0;
+            while ((i = text.indexOf('{{{', i)) !== -1) {
+                let depth = 1;
+                let j = i + 3;
+                while (j < text.length && depth > 0) {
+                    if (text.substr(j, 3) === '{{{') { depth++; j += 3; }
+                    else if (text.substr(j, 3) === '}}}') { depth--; j += 3; }
+                    else { j++; }
+                }
+                if (depth === 0) {
+                    let content = text.substring(i + 3, j - 3);
+                    let replacement = "";
+                    
+                    if (content.startsWith('#!folding')) {
+                        let match = content.match(/^#\!folding\s+\[(.*?)\]\s*([\s\S]*)$/);
+                        if(match) replacement = `<details class="mc-navbox" style="margin:10px 0;"><summary style="cursor:pointer; color:#0366d6; font-weight:bold;">[펼치기 / 접기] ${match[1]}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone); margin-top:10px;">\n\n${parseNamuBraces(match[2])}\n\n</div></details>`;
+                    } else if (content.startsWith('#!wiki')) {
+                        let match = content.match(/^#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*)$/);
+                        if(match) replacement = `<div style="${match[2]}">\n\n${parseNamuBraces(match[3])}\n\n</div>`;
+                    } else if (content.match(/^[#+\-]/)) {
+                        let match = content.match(/^([#+\-][^ \n]+)\s+([\s\S]*)$/);
+                        if(match) {
+                            let p1 = match[1];
+                            let p2 = match[2];
+                            let styleStr = "";
+                            if (p1.startsWith('#')) {
+                                let colors = p1.split(',');
+                                styleStr = `color:${colors[0]};`;
+                            } else if (p1.startsWith('+') || p1.startsWith('-')) {
+                                let size = parseInt(p1);
+                                if (!isNaN(size)) {
+                                    let scale = 1 + (size * 0.2);
+                                    styleStr = `font-size:${scale}em;`;
+                                }
+                            }
+                            replacement = `<span style="${styleStr}">${parseNamuBraces(p2)}</span>`;
                         }
+                    } else {
+                        // Plain syntax {{{ text }}}
+                        replacement = `<code>${content}</code>`;
                     }
-                    return `<span style="${styleStr}">${p2}</span>`;
-                });
+                    
+                    if (replacement) {
+                        text = text.substring(0, i) + replacement + text.substring(j);
+                        i += replacement.length;
+                        continue;
+                    }
+                }
+                i += 3;
             }
-            
-            // 6. Advanced Tables (나무위키 표 지원)
-            text = text.replace(/(?:^\|\|.*?\|\|\s*(?:\n|$))+/gm, (match) => {
-                let lines = match.trim().split('\n');
-                let html = '<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:auto; border:2px solid var(--mc-stone);">';
-                let tableStyle = '';
+            return text;
+        }
 
-                html += '<tbody>';
-                lines.forEach(line => {
-                    if (!line.trim().startsWith('||')) return;
-                    let rowStyle = '';
-                    let trHtml = '';
-                    
+        function parseNamuTables(text) {
+            let lines = text.split('\n');
+            let outLines = [];
+            let inTable = false;
+            let tableStyle = "";
+            let rows = [];
+
+            function flushTable() {
+                if (!inTable) return;
+                let tHtml = '<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:auto; border:2px solid var(--mc-stone);">';
+                let tStyle = tableStyle;
+                tHtml += '<tbody>';
+                rows.forEach(row => {
+                    tHtml += `<tr style="${row.rowStyle}">`;
+                    row.cells.forEach(cell => {
+                        let innerText = cell.content.trim();
+                        innerText = innerText.replace(/^(<[^>]+>)+/, '').trim();
+                        tHtml += `<td style="border:2px solid var(--mc-stone); padding:10px; ${cell.cellStyle}"${cell.cellAttrHtml}>${innerText}</td>`;
+                    });
+                    tHtml += '</tr>';
+                });
+                tHtml += '</tbody></table>';
+                if (tStyle) {
+                    tHtml = tHtml.replace('<table class="mc-table" style="', `<table class="mc-table" style="${tStyle} `);
+                }
+                outLines.push(tHtml);
+                inTable = false;
+                tableStyle = "";
+                rows = [];
+            }
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                if (line.trim().startsWith('||')) {
+                    if (!inTable) inTable = true;
                     let cells = line.split('||');
-                    cells = cells.slice(1, cells.length - 1); // Remove empty first/last parts from split
+                    cells = cells.slice(1, cells.length - 1); 
+                    if (cells.length === 0) cells = [""];
                     
-                    cells.forEach(cell => {
+                    let parsedCells = cells.map(cell => {
                         let cellAttrHtml = '';
                         let cellStyle = '';
                         let innerText = cell;
+                        let rowStyle = '';
                         
                         let attrRegex = /<([^>]+)>/g;
                         let attrMatch;
@@ -528,23 +527,88 @@
                             else if (attr.startsWith('tablewidth=')) tableStyle += `width:${attr.split('=')[1]};`;
                             else if (attr.startsWith('tablealign=')) tableStyle += `margin:${attr.split('=')[1] === 'right' ? '0 0 0 auto' : (attr.split('=')[1] === 'center' ? 'auto' : '0')}; float:${attr.split('=')[1] === 'right' ? 'right' : 'none'};`;
                         }
-                        
-                        innerText = innerText.replace(/^(<[^>]+>)+/, '').trim();
-                        trHtml += `<td style="border:2px solid var(--mc-stone); padding:10px; ${cellStyle}"${cellAttrHtml}>${innerText}</td>`;
+                        return { cellAttrHtml, cellStyle, content: innerText, rowStyle };
                     });
                     
-                    html += `<tr style="${rowStyle}">${trHtml}</tr>`;
-                });
-                html += '</tbody></table>';
-                
-                if (tableStyle) {
-                    html = html.replace('<table class="mc-table" style="', `<table class="mc-table" style="${tableStyle} `);
+                    let finalRowStyle = "";
+                    parsedCells.forEach(c => { if(c.rowStyle) finalRowStyle = c.rowStyle; });
+                    rows.push({ rowStyle: finalRowStyle, cells: parsedCells });
+                    
+                } else {
+                    if (inTable && line.trim() !== '') {
+                        if (rows.length > 0) {
+                            let lastRow = rows[rows.length - 1];
+                            if (lastRow.cells.length > 0) {
+                                lastRow.cells[lastRow.cells.length - 1].content += '\n' + line;
+                                continue;
+                            }
+                        }
+                    } else if (inTable && line.trim() === '') {
+                        flushTable();
+                        outLines.push(line);
+                    } else {
+                        outLines.push(line);
+                    }
                 }
-                
-                return html + '\n';
+            }
+            flushTable();
+            return outLines.join('\n');
+        }
+
+        function preprocessMarkdown(text) {
+            currentCategories = [];
+            currentFootnotes = [];
+
+            // 1. Headers (== Heading ==)
+            text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
+                return '#'.repeat(p1.length) + ' ' + p2;
             });
+
+            // 2. Extract Categories
+            text = text.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
+                currentCategories.push(p1.trim());
+                return "";
+            });
+
+            // 3. Tables (Parse before Braces so multi-line cells are captured)
+            text = parseNamuTables(text);
+
+            // 4. Nested Braces {{{ ... }}}
+            text = parseNamuBraces(text);
+
+            // 5. Text Formatting (Direct HTML so marked.js ignoring <td> won't break it)
+            text = text.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
+            text = text.replace(/''(.*?)''/g, '<em>$1</em>');
+            text = text.replace(/--(.*?)--/g, '<del>$1</del>');
+            text = text.replace(/__(.*?)__/g, '<u>$1</u>');
+            text = text.replace(/\^\^(.*?)\^\^/g, '<sup>$1</sup>');
+            text = text.replace(/,,(.*?),,/g, '<sub>$1</sub>');
+
+            // 6. Macros
+            text = text.replace(/\[youtube\((.*?)\)\]/gi, (match, p1) => {
+                let id = p1.split(',')[0].trim();
+                return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
+            });
+            text = text.replace(/\[br\]/gi, '<br>');
+            text = text.replace(/\[math\((.*?)\)\]/gi, '$$$1$$');
+            text = text.replace(/\[ruby\((.*?),\s*ruby=(.*?)\)\]/gi, '<ruby>$1<rt>$2</rt></ruby>');
+            text = text.replace(/\[clearfix\]/gi, '<div style="clear:both;"></div>');
             
-            // 5. Namuwiki Media (File) Macro
+            let dateStr = new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'});
+            text = text.replace(/\[date\]/gi, dateStr);
+            text = text.replace(/\[age\((.*?)\)\]/gi, (match, p1) => {
+                let birth = new Date(p1);
+                if(isNaN(birth)) return match;
+                return Math.abs(new Date(Date.now() - birth.getTime()).getUTCFullYear() - 1970);
+            });
+            text = text.replace(/\[dday\((.*?)\)\]/gi, (match, p1) => {
+                let target = new Date(p1);
+                if(isNaN(target)) return match;
+                let diff = Math.ceil((target.getTime() - Date.now()) / (1000 * 3600 * 24));
+                return diff > 0 ? `D-${diff}` : (diff === 0 ? `D-Day` : `D+${Math.abs(diff)}`);
+            });
+
+            // 7. Files
             text = text.replace(/\[\[파일:(.*?)\]\]/gi, (match, p1) => {
                 let parts = p1.split('|');
                 let fileName = parts[0].trim();
@@ -566,52 +630,15 @@
                 } else if (['mp3', 'wav', 'flac'].includes(ext)) {
                     return `<audio src="${basePath}" controls style="width:100%;"></audio>`;
                 } else {
-                    return `[파일: ${fileName}]`; // Fallback
+                    return `<span style="color:red; cursor:pointer;" onclick="alert('지원하지 않는 미디어이거나 파일 문법에 오류가 있습니다: ${fileName}')">[문법 오류!]</span>`;
                 }
             });
 
-            // Restore Placeholders (run twice to support 1 level of nesting if needed)
-            for (let loop = 0; loop < 2; loop++) {
-                for (let i = 0; i < placeholders.length; i++) {
-                    text = text.replace(`__MACRO_${i}__`, placeholders[i]);
-                }
-            }
-
-            return text;
-        }
-
-        // Preprocess Obsidian-style Wiki Links, Categories & Footnotes
-        let currentCategories = [];
-        let currentFootnotes = [];
-        function preprocessMarkdown(text) {
-            currentCategories = [];
-            currentFootnotes = [];
-            
-            // Convert NamuMark first
-            text = convertNamuMark(text);
-            
-            // 1. Extract Categories: [[분류:마인크래프트]]
-            text = text.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
-                currentCategories.push(p1.trim());
-                return ""; // Remove from markdown body
-            });
-            
-            // 2. Images: ![[...]]
-            text = text.replace(/!\[\[([^\]]+)\]\]/g, (match, p1) => {
-                const parts = p1.split('|');
-                const src = parts[0].trim();
-                const alt = parts[1] ? parts[1].trim() : src;
-                return `![${alt}](${src})`;
-            });
-            
-            // 3. Wiki Links: [[...]]
+            // 8. Wiki Links (Direct HTML for table support)
             text = text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
-                if (!p1.trim()) return match; // skip empty links like [[]]
-
+                if (!p1.trim()) return match;
                 const parts = p1.split('|');
                 let page = parts[0].trim();
-                
-                // Namuwiki Subpage / Parent page relative linking
                 if (page.startsWith('/')) {
                     page = currentPage + page;
                 } else if (page.startsWith('../')) {
@@ -622,14 +649,13 @@
                     let remaining = page.substring(3);
                     page = remaining ? basePath + '/' + remaining : basePath;
                 }
-                
                 let display = parts.length > 1 ? parts.slice(1).join('|').trim() : page;
-                return `[${display}](?page=${encodeURIComponent(page)})`;
+                // Encode quotes for safety
+                return `<a href="?page=${encodeURIComponent(page)}">${display}</a>`;
             });
-            
-            // 2. Handle Footnotes [* 내용]
+
+            // 9. Footnotes (Popup Alert)
             let footnoteCount = 1;
-            const footnotes = [];
             let fnIndex = 0;
             while ((fnIndex = text.indexOf('[*', fnIndex)) !== -1) {
                 let depth = 1;
@@ -643,14 +669,16 @@
                     let fnContent = text.substring(fnIndex + 2, j - 1).trim();
                     let currentFnNum = footnoteCount++;
                     currentFootnotes.push(fnContent);
-                    let fnHtml = `<sup id="fnref:${currentFnNum}"><a href="#fn:${currentFnNum}" style="color:var(--mc-green); text-decoration:none;">[${currentFnNum}]</a></sup>`;
+                    // Use standard JS alert for the popup
+                    let safeContent = fnContent.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                    let fnHtml = `<sup id="fnref:${currentFnNum}"><a style="color:var(--mc-green); cursor:pointer;" onclick="alert('${safeContent}')">[${currentFnNum}]</a></sup>`;
                     text = text.substring(0, fnIndex) + fnHtml + text.substring(j);
                     fnIndex += fnHtml.length;
                 } else {
                     fnIndex += 2;
                 }
             }
-            
+
             return text;
         }
 
