@@ -405,60 +405,6 @@
 
         // --- NamuMark (the seed) Syntax Converter ---
         let currentFootnotes = [];
-        
-        function parseNamuBraces(text) {
-            let i = 0;
-            while ((i = text.indexOf('{{{', i)) !== -1) {
-                let depth = 1;
-                let j = i + 3;
-                while (j < text.length && depth > 0) {
-                    if (text.substr(j, 3) === '{{{') { depth++; j += 3; }
-                    else if (text.substr(j, 3) === '}}}') { depth--; j += 3; }
-                    else { j++; }
-                }
-                if (depth === 0) {
-                    let content = text.substring(i + 3, j - 3);
-                    let replacement = "";
-                    
-                    if (content.startsWith('#!folding')) {
-                        let match = content.match(/^#\!folding\s+\[(.*?)\]\s*([\s\S]*)$/);
-                        if(match) replacement = `<details class="mc-navbox" style="margin:10px 0;"><summary style="cursor:pointer; color:#0366d6; font-weight:bold;">[펼치기 / 접기] ${match[1]}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone); margin-top:10px;">\n\n${parseNamuBraces(match[2])}\n\n</div></details>`;
-                    } else if (content.startsWith('#!wiki')) {
-                        let match = content.match(/^#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*)$/);
-                        if(match) replacement = `<div style="${match[2]}">\n\n${parseNamuBraces(match[3])}\n\n</div>`;
-                    } else if (content.match(/^[#+\-]/)) {
-                        let match = content.match(/^([#+\-][^ \n]+)\s+([\s\S]*)$/);
-                        if(match) {
-                            let p1 = match[1];
-                            let p2 = match[2];
-                            let styleStr = "";
-                            if (p1.startsWith('#')) {
-                                let colors = p1.split(',');
-                                styleStr = `color:${colors[0]};`;
-                            } else if (p1.startsWith('+') || p1.startsWith('-')) {
-                                let size = parseInt(p1);
-                                if (!isNaN(size)) {
-                                    let scale = 1 + (size * 0.2);
-                                    styleStr = `font-size:${scale}em;`;
-                                }
-                            }
-                            replacement = `<span style="${styleStr}">${parseNamuBraces(p2)}</span>`;
-                        }
-                    } else {
-                        // Plain syntax {{{ text }}}
-                        replacement = `<code>${content}</code>`;
-                    }
-                    
-                    if (replacement) {
-                        text = text.substring(0, i) + replacement + text.substring(j);
-                        i += replacement.length;
-                        continue;
-                    }
-                }
-                i += 3;
-            }
-            return text;
-        }
 
         function parseNamuTables(text) {
             let lines = text.split('\n');
@@ -476,7 +422,6 @@
                     tHtml += `<tr style="${row.rowStyle}">`;
                     row.cells.forEach(cell => {
                         let innerText = cell.content.trim();
-                        // Smart attribute stripper
                         let stripped = innerText.trimStart();
                         let attrsToRemove = [...cell.matchedAttrs];
                         while (attrsToRemove.length > 0) {
@@ -489,7 +434,7 @@
                                     break;
                                 }
                             }
-                            if (!found) break; // Reached actual text or unsupported HTML tag
+                            if (!found) break; 
                         }
                         tHtml += `<td style="border:2px solid var(--mc-stone); padding:10px; ${cell.cellStyle}"${cell.cellAttrHtml}>${stripped}</td>`;
                     });
@@ -573,6 +518,94 @@
             return outLines.join('\n');
         }
 
+        function compileNamuMark(text) {
+            let placeholders = [];
+            
+            function extractBraces(t) {
+                let i = 0;
+                while ((i = t.indexOf('{{{', i)) !== -1) {
+                    let depth = 1;
+                    let j = i + 3;
+                    while (j < t.length && depth > 0) {
+                        if (t.substr(j, 3) === '{{{') { depth++; j += 3; }
+                        else if (t.substr(j, 3) === '}}}') { depth--; j += 3; }
+                        else { j++; }
+                    }
+                    if (depth === 0) {
+                        let content = t.substring(i + 3, j - 3);
+                        content = extractBraces(content); 
+                        let pId = `__MACRO_${placeholders.length}__`;
+                        placeholders.push(content);
+                        t = t.substring(0, i) + pId + t.substring(j);
+                        i += pId.length;
+                    } else {
+                        i += 3;
+                    }
+                }
+                return t;
+            }
+
+            text = extractBraces(text);
+            text = parseNamuTables(text);
+
+            let maxPasses = 10;
+            while (text.includes('__MACRO_') && maxPasses-- > 0) {
+                text = text.replace(/__MACRO_(\d+)__/g, (match, id) => {
+                    let content = placeholders[parseInt(id)];
+                    content = parseNamuTables(content); // Process inner tables!
+                    
+                    if (content.startsWith('#!folding')) {
+                        let m = content.match(/^#\!folding\s+\[(.*?)\]\s*([\s\S]*)$/);
+                        if(m) return `<details class="mc-navbox" style="margin:10px 0;"><summary style="cursor:pointer; color:#0366d6; font-weight:bold;">[펼치기 / 접기] ${m[1]}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone); margin-top:10px;">\n\n${m[2]}\n\n</div></details>`;
+                    } else if (content.startsWith('#!wiki')) {
+                        let m = content.match(/^#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*)$/);
+                        if(m) return `<div style="${m[2]}">\n\n${m[3]}\n\n</div>`;
+                    } else if (content.match(/^[#+\-]/)) {
+                        let m = content.match(/^([#+\-][^ \n]+)\s+([\s\S]*)$/);
+                        if(m) {
+                            let styleStr = "";
+                            if (m[1].startsWith('#')) {
+                                styleStr = `color:${m[1].split(',')[0]};`;
+                            } else {
+                                let size = parseInt(m[1]);
+                                if (!isNaN(size)) styleStr = `font-size:${1 + (size * 0.2)}em;`;
+                            }
+                            return `<span style="${styleStr}">${m[2]}</span>`;
+                        }
+                    }
+                    return `<code>${content}</code>`;
+                });
+            }
+            return text;
+        }
+
+        function extractFootnotes(t) {
+            let footnoteCount = 1;
+            let i = 0;
+            while ((i = t.indexOf('[*', i)) !== -1) {
+                let depth = 1;
+                let j = i + 2;
+                while (j < t.length && depth > 0) {
+                    if (t[j] === '[') depth++;
+                    else if (t[j] === ']') depth--;
+                    j++;
+                }
+                if (depth === 0) {
+                    let content = t.substring(i + 2, j - 1).trim();
+                    content = extractFootnotes(content); // Handle nested footnotes
+                    let currentFnNum = footnoteCount++;
+                    currentFootnotes.push(content);
+                    let safeContent = content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                    let fnHtml = `<sup id="fnref:${currentFnNum}"><a style="color:var(--mc-green); cursor:pointer;" onclick="alert('${safeContent}')">[${currentFnNum}]</a></sup>`;
+                    t = t.substring(0, i) + fnHtml + t.substring(j);
+                    i += fnHtml.length;
+                } else {
+                    i += 2;
+                }
+            }
+            return t;
+        }
+
         function preprocessMarkdown(text) {
             currentCategories = [];
             currentFootnotes = [];
@@ -589,11 +622,11 @@
                 return "";
             });
 
-            // 3. Tables (Parse before Braces so multi-line cells are captured)
-            text = parseNamuTables(text);
+            // 3. Compile NamuMark (Tables, Nested Braces, Folding)
+            text = compileNamuMark(text);
 
-            // 4. Nested Braces {{{ ... }}}
-            text = parseNamuBraces(text);
+            // 4. Extract Footnotes (After Braces/Tables, BEFORE Text Formatting so * is not consumed)
+            text = extractFootnotes(text);
 
             // 5. Text Formatting (Direct HTML so marked.js ignoring <td> won't break it)
             // NamuMark Formatting
@@ -676,30 +709,6 @@
                 let display = parts.length > 1 ? parts.slice(1).join('|').trim() : page;
                 return `<a href="?page=${encodeURIComponent(page)}">${display}</a>`;
             });
-
-            // 9. Footnotes (Popup Alert)
-            let footnoteCount = 1;
-            let fnIndex = 0;
-            while ((fnIndex = text.indexOf('[*', fnIndex)) !== -1) {
-                let depth = 1;
-                let j = fnIndex + 2;
-                while (j < text.length && depth > 0) {
-                    if (text[j] === '[') depth++;
-                    else if (text[j] === ']') depth--;
-                    j++;
-                }
-                if (depth === 0) {
-                    let fnContent = text.substring(fnIndex + 2, j - 1).trim();
-                    let currentFnNum = footnoteCount++;
-                    currentFootnotes.push(fnContent);
-                    let safeContent = fnContent.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                    let fnHtml = `<sup id="fnref:${currentFnNum}"><a style="color:var(--mc-green); cursor:pointer;" onclick="alert('${safeContent}')">[${currentFnNum}]</a></sup>`;
-                    text = text.substring(0, fnIndex) + fnHtml + text.substring(j);
-                    fnIndex += fnHtml.length;
-                } else {
-                    fnIndex += 2;
-                }
-            }
 
             return text;
         }
