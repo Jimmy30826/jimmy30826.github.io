@@ -246,6 +246,7 @@
                     <div id="last-edited-time" style="color: #666; font-size: 0.85rem; margin-top: 5px;"></div>
                 </div>
                 <div class="wiki-actions" id="viewer-actions" style="display: none;">
+                    <button class="mc-button" onclick="showBacklinks(currentPage)"><i class="fa-solid fa-link"></i> 역링크</button>
                     <button class="mc-button" onclick="openHistory()"><i class="fa-solid fa-clock-rotate-left"></i> 문서 역사</button>
                     <button class="mc-button" id="btn-edit-doc" onclick="startEdit()"><i class="fa-solid fa-pen"></i> 문서 편집</button>
                 </div>
@@ -422,6 +423,30 @@
                 let id = p1.split(',')[0].trim();
                 return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
             });
+
+            // 3.5. Misc Macros (br, math, ruby, clearfix, date, age, dday)
+            text = text.replace(/\[br\]/gi, '<br>');
+            text = text.replace(/\[math\((.*?)\)\]/gi, '$$$1$$');
+            text = text.replace(/\[ruby\((.*?),\s*ruby=(.*?)\)\]/gi, '<ruby>$1<rt>$2</rt></ruby>');
+            text = text.replace(/\[clearfix\]/gi, '<div style="clear:both;"></div>');
+            
+            let dateStr = new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'});
+            text = text.replace(/\[date\]/gi, dateStr);
+            
+            text = text.replace(/\[age\((.*?)\)\]/gi, (match, p1) => {
+                let birth = new Date(p1);
+                if(isNaN(birth)) return match;
+                let ageDifMs = Date.now() - birth.getTime();
+                let ageDate = new Date(ageDifMs);
+                return Math.abs(ageDate.getUTCFullYear() - 1970);
+            });
+            
+            text = text.replace(/\[dday\((.*?)\)\]/gi, (match, p1) => {
+                let target = new Date(p1);
+                if(isNaN(target)) return match;
+                let diff = Math.ceil((target.getTime() - Date.now()) / (1000 * 3600 * 24));
+                return diff > 0 ? `D-${diff}` : (diff === 0 ? `D-Day` : `D+${Math.abs(diff)}`);
+            });
             
             // 4. Folding (접기/펼치기)
             text = text.replace(/\{\{\{#\!folding\s+\[(.*?)\]\n([\s\S]*?)\}\}\}/g, (match, title, content) => {
@@ -540,7 +565,20 @@
             // 3. Wiki Links: [[...]]
             text = text.replace(/\[\[([^\]]+)\]\]/g, (match, p1) => {
                 const parts = p1.split('|');
-                const page = parts[0].trim();
+                let page = parts[0].trim();
+                
+                // Namuwiki Subpage / Parent page relative linking
+                if (page.startsWith('/')) {
+                    page = currentPage + page;
+                } else if (page.startsWith('../')) {
+                    let pathParts = currentPage.split('/');
+                    pathParts.pop();
+                    let basePath = pathParts.join('/');
+                    if (basePath === '') basePath = currentPage;
+                    let remaining = page.substring(3);
+                    page = remaining ? basePath + '/' + remaining : basePath;
+                }
+                
                 const display = parts[1] ? parts[1].trim() : page;
                 return `[${display}](?page=${encodeURIComponent(page)})`;
             });
@@ -718,31 +756,100 @@
             }
         }
 
+        // Fetch Backlinks (역링크)
+        async function showBacklinks(targetPage) {
+            titleEl.textContent = `역링크: ${targetPage}`;
+            viewerEl.innerHTML = "<div style='text-align:center; padding: 50px 0;'><i class='fa-solid fa-spinner fa-spin fa-2x'></i><br><br>역링크를 검색 중입니다...</div>";
+            viewerActions.style.display = 'none';
+            editorEl.style.display = 'none';
+
+            try {
+                const mdFiles = await fetchAllDocuments();
+                if (mdFiles.length === 0) throw new Error("문서 목록을 가져올 수 없습니다.");
+                
+                function escapeRegExp(string) {
+                    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                }
+
+                let targetRegex1 = new RegExp(`\\[\\[${escapeRegExp(targetPage)}(\\||\\]\\])`, 'i');
+                let targetRegex2 = new RegExp(`\\[include\\((틀:)?${escapeRegExp(targetPage)}\\)\\]`, 'i');
+
+                const fetchPromises = mdFiles.map(async pageName => {
+                    const doc = await fetchDocumentRaw(pageName);
+                    if (doc && doc.content) {
+                        if (targetRegex1.test(doc.content) || targetRegex2.test(doc.content)) {
+                            return pageName;
+                        }
+                    }
+                    return null;
+                });
+                
+                const results = await Promise.all(fetchPromises);
+                const matchedPages = results.filter(p => p !== null).sort();
+                
+                if (matchedPages.length > 0) {
+                    let html = `<div style="background: #e3f2fd; padding: 15px; border-left: 4px solid #2196F3; margin-bottom: 20px;">
+                        <strong>'${targetPage}'</strong> 문서로 연결되는 총 <strong>${matchedPages.length}</strong>개의 문서가 있습니다.
+                    </div><ul style="list-style-type: square; padding-left: 20px;">`;
+                    matchedPages.forEach(p => {
+                        html += `<li style="margin-bottom: 10px;"><a href="?page=${encodeURIComponent(p)}" style="font-size:1.1rem; color:#0366d6; text-decoration:none; border-bottom: 1px solid #c8e1ff;">${p}</a></li>`;
+                    });
+                    html += `</ul>`;
+                    viewerEl.innerHTML = html;
+                } else {
+                    viewerEl.innerHTML = `<div style="padding: 20px;"><i class="fa-solid fa-circle-info"></i> 이 문서로 연결되는 역링크가 없습니다.</div>`;
+                }
+            } catch(e) {
+                viewerEl.innerHTML = `<div style="color:red; padding: 20px;"><i class="fa-solid fa-triangle-exclamation"></i> 역링크 검색 중 오류가 발생했습니다: ${e.message}</div>`;
+            }
+        }
+
         // Fetch Page Content
-        async function fetchPage() {
+        async function fetchPage(isRedirect = false, originalPage = null) {
             if (currentCategory) {
                 fetchCategory(currentCategory);
                 return;
             }
             
-            titleEl.textContent = currentPage;
+            // Subpage Breadcrumbs rendering
+            if (currentPage.includes('/')) {
+                let parts = currentPage.split('/');
+                let breadcrumbHtml = parts.map((part, index) => {
+                    let path = parts.slice(0, index + 1).join('/');
+                    return `<a href="?page=${encodeURIComponent(path)}" style="color:var(--mc-green); text-decoration:none;">${part}</a>`;
+                }).join(' <span style="color:#999; margin:0 5px;">/</span> ');
+                titleEl.innerHTML = breadcrumbHtml;
+            } else {
+                titleEl.textContent = currentPage;
+            }
+
             viewerEl.innerHTML = "로딩 중...";
             
-            const doc = await fetchDocumentRaw(currentPage);
-            const exists = doc !== null;
+            let doc = await fetchDocumentRaw(currentPage);
+            let exists = doc !== null;
+            let redirectNotice = isRedirect ? `<div style="font-size: 0.9em; color: gray; margin-bottom: 10px;">↳ <a href="?page=${encodeURIComponent(originalPage)}">${originalPage}</a>에서 넘어옴</div>` : '';
 
             if (exists) {
                 originalContent = doc.content;
                 currentFileSha = doc.sha;
                 
+                // Handle Redirect syntax (#redirect 문서명)
+                const redirectMatch = originalContent.match(/^#(?:redirect|넘겨주기)\s+(.+)$/im);
+                if (redirectMatch && !isRedirect) {
+                    const targetPage = redirectMatch[1].trim();
+                    currentPage = targetPage;
+                    await fetchPage(true, originalPage || urlParams.get('page') || '대문');
+                    return;
+                }
+
                 // 1. Expand templates (async)
                 let expandedContent = await expandTemplates(originalContent);
                 
                 // 2. Preprocess categories, wiki links, footnotes
                 const preprocessedContent = preprocessMarkdown(expandedContent);
                 
-                // 3. Render Markdown
-                viewerEl.innerHTML = marked.parse(preprocessedContent);
+                // 3. Render HTML
+                viewerEl.innerHTML = redirectNotice + marked.parse(preprocessedContent);
                 
                 // 4. Post-processing (TOC, Categories, Footnotes)
                 generateTOC(viewerEl);
