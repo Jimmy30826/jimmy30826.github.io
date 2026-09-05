@@ -476,8 +476,22 @@
                     tHtml += `<tr style="${row.rowStyle}">`;
                     row.cells.forEach(cell => {
                         let innerText = cell.content.trim();
-                        innerText = innerText.replace(/^(<[^>]+>)+/, '').trim();
-                        tHtml += `<td style="border:2px solid var(--mc-stone); padding:10px; ${cell.cellStyle}"${cell.cellAttrHtml}>${innerText}</td>`;
+                        // Smart attribute stripper
+                        let stripped = innerText.trimStart();
+                        let attrsToRemove = [...cell.matchedAttrs];
+                        while (attrsToRemove.length > 0) {
+                            let found = false;
+                            for (let i = 0; i < attrsToRemove.length; i++) {
+                                if (stripped.startsWith(attrsToRemove[i])) {
+                                    stripped = stripped.substring(attrsToRemove[i].length).trimStart();
+                                    attrsToRemove.splice(i, 1);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) break; // Reached actual text or unsupported HTML tag
+                        }
+                        tHtml += `<td style="border:2px solid var(--mc-stone); padding:10px; ${cell.cellStyle}"${cell.cellAttrHtml}>${stripped}</td>`;
                     });
                     tHtml += '</tr>';
                 });
@@ -504,30 +518,34 @@
                         let cellStyle = '';
                         let innerText = cell;
                         let rowStyle = '';
+                        let matchedAttrs = [];
                         
                         let attrRegex = /<([^>]+)>/g;
                         let attrMatch;
                         while ((attrMatch = attrRegex.exec(innerText)) !== null) {
                             let attr = attrMatch[1].trim();
-                            if (attr.startsWith('-')) cellAttrHtml += ` colspan="${attr.substring(1)}"`;
-                            else if (attr.startsWith('|')) cellAttrHtml += ` rowspan="${attr.substring(1)}"`;
-                            else if (attr === ':') cellStyle += 'text-align:center;';
-                            else if (attr === ')') cellStyle += 'text-align:right;';
-                            else if (attr === '(') cellStyle += 'text-align:left;';
-                            else if (attr === 'nopad') cellStyle += 'padding:0;';
-                            else if (attr === 'keepall') cellStyle += 'word-break:keep-all;';
-                            else if (attr.startsWith('bgcolor=')) cellStyle += `background-color:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('color=')) cellStyle += `color:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('width=')) cellStyle += `width:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('rowbgcolor=')) rowStyle += `background-color:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('colbgcolor=')) cellStyle += `background-color:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('colcolor=')) cellStyle += `color:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('tablebordercolor=')) tableStyle += `border-color:${attr.split('=')[1]}; border-width:2px; border-style:solid;`;
-                            else if (attr.startsWith('tablebgcolor=')) tableStyle += `background-color:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('tablewidth=')) tableStyle += `width:${attr.split('=')[1]};`;
-                            else if (attr.startsWith('tablealign=')) tableStyle += `margin:${attr.split('=')[1] === 'right' ? '0 0 0 auto' : (attr.split('=')[1] === 'center' ? 'auto' : '0')}; float:${attr.split('=')[1] === 'right' ? 'right' : 'none'};`;
+                            let isAttr = false;
+                            if (attr.startsWith('-')) { cellAttrHtml += ` colspan="${attr.substring(1)}"`; isAttr = true; }
+                            else if (attr.startsWith('|')) { cellAttrHtml += ` rowspan="${attr.substring(1)}"`; isAttr = true; }
+                            else if (attr === ':') { cellStyle += 'text-align:center;'; isAttr = true; }
+                            else if (attr === ')') { cellStyle += 'text-align:right;'; isAttr = true; }
+                            else if (attr === '(') { cellStyle += 'text-align:left;'; isAttr = true; }
+                            else if (attr === 'nopad') { cellStyle += 'padding:0;'; isAttr = true; }
+                            else if (attr === 'keepall') { cellStyle += 'word-break:keep-all;'; isAttr = true; }
+                            else if (attr.startsWith('bgcolor=')) { cellStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('color=')) { cellStyle += `color:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('width=')) { cellStyle += `width:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('rowbgcolor=')) { rowStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('colbgcolor=')) { cellStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('colcolor=')) { cellStyle += `color:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('tablebordercolor=')) { tableStyle += `border-color:${attr.split('=')[1]}; border-width:2px; border-style:solid;`; isAttr = true; }
+                            else if (attr.startsWith('tablebgcolor=')) { tableStyle += `background-color:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('tablewidth=')) { tableStyle += `width:${attr.split('=')[1]};`; isAttr = true; }
+                            else if (attr.startsWith('tablealign=')) { tableStyle += `margin:${attr.split('=')[1] === 'right' ? '0 0 0 auto' : (attr.split('=')[1] === 'center' ? 'auto' : '0')}; float:${attr.split('=')[1] === 'right' ? 'right' : 'none'};`; isAttr = true; }
+                            
+                            if (isAttr) matchedAttrs.push(attrMatch[0]);
                         }
-                        return { cellAttrHtml, cellStyle, content: innerText, rowStyle };
+                        return { cellAttrHtml, cellStyle, content: innerText, rowStyle, matchedAttrs };
                     });
                     
                     let finalRowStyle = "";
@@ -559,9 +577,10 @@
             currentCategories = [];
             currentFootnotes = [];
 
-            // 1. Headers (== Heading ==)
+            // 1. Headers (== Heading ==) -> Direct HTML so it renders inside tables/divs
             text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
-                return '#'.repeat(p1.length) + ' ' + p2;
+                let level = p1.length;
+                return `<h${level}>${p2}</h${level}>`;
             });
 
             // 2. Extract Categories
@@ -577,12 +596,17 @@
             text = parseNamuBraces(text);
 
             // 5. Text Formatting (Direct HTML so marked.js ignoring <td> won't break it)
+            // NamuMark Formatting
             text = text.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
             text = text.replace(/''(.*?)''/g, '<em>$1</em>');
             text = text.replace(/--(.*?)--/g, '<del>$1</del>');
             text = text.replace(/__(.*?)__/g, '<u>$1</u>');
             text = text.replace(/\^\^(.*?)\^\^/g, '<sup>$1</sup>');
             text = text.replace(/,,(.*?),,/g, '<sub>$1</sub>');
+            
+            // Standard Markdown Formatting (so it works inside HTML blocks)
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
             // 6. Macros
             text = text.replace(/\[youtube\((.*?)\)\]/gi, (match, p1) => {
@@ -650,7 +674,6 @@
                     page = remaining ? basePath + '/' + remaining : basePath;
                 }
                 let display = parts.length > 1 ? parts.slice(1).join('|').trim() : page;
-                // Encode quotes for safety
                 return `<a href="?page=${encodeURIComponent(page)}">${display}</a>`;
             });
 
@@ -669,7 +692,6 @@
                     let fnContent = text.substring(fnIndex + 2, j - 1).trim();
                     let currentFnNum = footnoteCount++;
                     currentFootnotes.push(fnContent);
-                    // Use standard JS alert for the popup
                     let safeContent = fnContent.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                     let fnHtml = `<sup id="fnref:${currentFnNum}"><a style="color:var(--mc-green); cursor:pointer;" onclick="alert('${safeContent}')">[${currentFnNum}]</a></sup>`;
                     text = text.substring(0, fnIndex) + fnHtml + text.substring(j);
