@@ -440,6 +440,30 @@
                 return result + '\n';
             });
             
+            // 5. Namuwiki Media (File) Macro
+            // e.g. [[파일:image.png]] or [[파일:video.mp4|width=100%]]
+            text = text.replace(/\[\[파일:(.*?)\]\]/gi, (match, p1) => {
+                let parts = p1.split('|');
+                let fileName = parts[0].trim();
+                let widthAttr = "";
+                if (parts.length > 1) {
+                    let options = parts[1].trim();
+                    let widthMatch = options.match(/width=([0-9a-zA-Z%]+)/);
+                    if (widthMatch) widthAttr = ` width="${widthMatch[1]}"`;
+                }
+                
+                let ext = fileName.split('.').pop().toLowerCase();
+                let src = `assets/${fileName}`;
+                
+                if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                    return `<video controls style="max-width:100%; border-radius:5px;"${widthAttr}><source src="${src}" type="video/${ext}"></video>`;
+                } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+                    return `<audio controls src="${src}"></audio>`;
+                } else {
+                    return `<img src="${src}" style="max-width:100%; border-radius:5px;"${widthAttr}>`;
+                }
+            });
+            
             return text;
         }
 
@@ -554,7 +578,11 @@
             
             const templateContents = {};
             const promises = Array.from(templatesToFetch).map(async (tpl) => {
-                const doc = await fetchDocumentRaw(tpl);
+                // Support Namuwiki '틀:' syntax by replacing it with Windows-compatible '틀_'
+                let fetchName = tpl;
+                if (fetchName.startsWith('틀:')) fetchName = fetchName.replace('틀:', '틀_');
+
+                const doc = await fetchDocumentRaw(fetchName);
                 if (doc && doc.content) {
                     templateContents[tpl] = await expandTemplates(doc.content, depth + 1);
                 } else {
@@ -966,14 +994,7 @@
                         const end = inputEl.selectionEnd;
                         const text = inputEl.value;
                         
-                        let mediaMarkdown = "";
-                        if (file.type.startsWith('video/')) {
-                            mediaMarkdown = `\n<video controls style="max-width:100%; border-radius:5px;"><source src="assets/${fileName}" type="${file.type}"></video>\n`;
-                        } else if (file.type.startsWith('audio/')) {
-                            mediaMarkdown = `\n<audio controls src="assets/${fileName}"></audio>\n`;
-                        } else {
-                            mediaMarkdown = `\n![[assets/${fileName}]]\n`;
-                        }
+                        let mediaMarkdown = `\n[[파일:${fileName}]]\n`;
                         
                         inputEl.value = text.substring(0, start) + mediaMarkdown + text.substring(end);
                         inputEl.selectionStart = inputEl.selectionEnd = start + mediaMarkdown.length;
