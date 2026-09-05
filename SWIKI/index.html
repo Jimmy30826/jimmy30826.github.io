@@ -402,12 +402,56 @@
             gfm: true
         });
 
+        // --- NamuMark (the seed) Syntax Converter ---
+        function convertNamuMark(text) {
+            // 1. Headers (== Heading ==)
+            text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
+                return '#'.repeat(p1.length) + ' ' + p2;
+            });
+
+            // 2. Text Formatting
+            text = text.replace(/'''(.*?)'''/g, '**$1**'); // Bold
+            text = text.replace(/''(.*?)''/g, '*$1*');     // Italic
+            text = text.replace(/--(.*?)--/g, '~~$1~~');   // Strikethrough
+            text = text.replace(/__(.*?)__/g, '<u>$1</u>'); // Underline
+            text = text.replace(/\^\^(.*?)\^\^/g, '<sup>$1</sup>'); // Superscript
+            text = text.replace(/,,(.*?),,/g, '<sub>$1</sub>'); // Subscript
+            
+            // 3. YouTube Macro
+            text = text.replace(/\[youtube\((.*?)\)\]/gi, (match, p1) => {
+                let id = p1.split(',')[0].trim();
+                return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
+            });
+            
+            // 4. Basic Tables (|| A || B ||)
+            text = text.replace(/(^\|\|.*\|\|\s*(?:\n|$))+/gm, (match) => {
+                let lines = match.trim().split('\n');
+                let result = '';
+                lines.forEach((line, index) => {
+                    let parsedLine = line.replace(/\|\|/g, '|');
+                    result += parsedLine + '\n';
+                    if (index === 0) {
+                        let cols = (line.match(/\|\|/g) || []).length - 1;
+                        if (cols > 0) {
+                            result += '|' + '---|'.repeat(cols) + '\n';
+                        }
+                    }
+                });
+                return result + '\n';
+            });
+            
+            return text;
+        }
+
         // Preprocess Obsidian-style Wiki Links, Categories & Footnotes
         let currentCategories = [];
         let currentFootnotes = [];
         function preprocessMarkdown(text) {
             currentCategories = [];
             currentFootnotes = [];
+            
+            // Convert NamuMark first
+            text = convertNamuMark(text);
             
             // 1. Extract Categories: [[분류:마인크래프트]]
             text = text.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
