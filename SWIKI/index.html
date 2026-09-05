@@ -404,7 +404,27 @@
         });
 
         // --- NamuMark (the seed) Syntax Converter ---
-        let currentFootnotes = [];
+        let currentCategories = [];
+        let footnoteCount = 1;
+
+        window.showFootnote = function(contentHtml) {
+            let dialog = document.getElementById('fn-dialog');
+            if (!dialog) {
+                dialog = document.createElement('dialog');
+                dialog.id = 'fn-dialog';
+                dialog.style.cssText = "padding:20px; border:1px solid var(--mc-stone); border-radius:8px; background:var(--mc-bg-color); color:var(--mc-text-color); max-width:80vw; max-height:80vh; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.2); outline:none;";
+                document.body.appendChild(dialog);
+                
+                dialog.addEventListener('click', (e) => {
+                    const rect = dialog.getBoundingClientRect();
+                    if (e.clientY < rect.top || e.clientY > rect.bottom || e.clientX < rect.left || e.clientX > rect.right) {
+                        dialog.close();
+                    }
+                });
+            }
+            dialog.innerHTML = `<div style="margin-bottom:15px; line-height:1.6; font-size:1.05em;">${contentHtml}</div><div style="text-align:right;"><button onclick="this.parentElement.parentElement.close()" style="padding:6px 16px; background:var(--mc-stone); border:none; border-radius:4px; cursor:pointer; color:var(--mc-text-color); font-weight:bold;">닫기</button></div>`;
+            dialog.showModal();
+        };
 
         function parseNamuTables(text) {
             let lines = text.split('\n');
@@ -455,7 +475,8 @@
                 if (line.trim().startsWith('||')) {
                     if (!inTable) inTable = true;
                     let cells = line.split('||');
-                    cells = cells.slice(1, cells.length - 1); 
+                    if (cells.length > 0 && cells[0].trim() === '') cells.shift();
+                    if (cells.length > 0 && cells[cells.length - 1].trim() === '') cells.pop();
                     if (cells.length === 0) cells = [""];
                     
                     let parsedCells = cells.map(cell => {
@@ -518,118 +539,7 @@
             return outLines.join('\n');
         }
 
-        function compileNamuMark(text) {
-            let placeholders = [];
-            
-            function extractBraces(t) {
-                let i = 0;
-                while ((i = t.indexOf('{{{', i)) !== -1) {
-                    let depth = 1;
-                    let j = i + 3;
-                    while (j < t.length && depth > 0) {
-                        if (t.substr(j, 3) === '{{{') { depth++; j += 3; }
-                        else if (t.substr(j, 3) === '}}}') { depth--; j += 3; }
-                        else { j++; }
-                    }
-                    if (depth === 0) {
-                        let content = t.substring(i + 3, j - 3);
-                        content = extractBraces(content); 
-                        let pId = `__MACRO_${placeholders.length}__`;
-                        placeholders.push(content);
-                        t = t.substring(0, i) + pId + t.substring(j);
-                        i += pId.length;
-                    } else {
-                        i += 3;
-                    }
-                }
-                return t;
-            }
-
-            text = extractBraces(text);
-            text = parseNamuTables(text);
-
-            let maxPasses = 10;
-            while (text.includes('__MACRO_') && maxPasses-- > 0) {
-                text = text.replace(/__MACRO_(\d+)__/g, (match, id) => {
-                    let content = placeholders[parseInt(id)];
-                    content = parseNamuTables(content); // Process inner tables!
-                    
-                    if (content.startsWith('#!folding')) {
-                        let m = content.match(/^#\!folding\s+\[(.*?)\]\s*([\s\S]*)$/);
-                        if(m) return `<details class="mc-navbox" style="margin:10px 0;"><summary style="cursor:pointer; color:#0366d6; font-weight:bold;">[펼치기 / 접기] ${m[1]}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone); margin-top:10px;">\n\n${m[2]}\n\n</div></details>`;
-                    } else if (content.startsWith('#!wiki')) {
-                        let m = content.match(/^#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*)$/);
-                        if(m) return `<div style="${m[2]}">\n\n${m[3]}\n\n</div>`;
-                    } else if (content.match(/^[#+\-]/)) {
-                        let m = content.match(/^([#+\-][^ \n]+)\s+([\s\S]*)$/);
-                        if(m) {
-                            let styleStr = "";
-                            if (m[1].startsWith('#')) {
-                                styleStr = `color:${m[1].split(',')[0]};`;
-                            } else {
-                                let size = parseInt(m[1]);
-                                if (!isNaN(size)) styleStr = `font-size:${1 + (size * 0.2)}em;`;
-                            }
-                            return `<span style="${styleStr}">${m[2]}</span>`;
-                        }
-                    }
-                    return `<code>${content}</code>`;
-                });
-            }
-            return text;
-        }
-
-        function extractFootnotes(t) {
-            let footnoteCount = 1;
-            let i = 0;
-            while ((i = t.indexOf('[*', i)) !== -1) {
-                let depth = 1;
-                let j = i + 2;
-                while (j < t.length && depth > 0) {
-                    if (t[j] === '[') depth++;
-                    else if (t[j] === ']') depth--;
-                    j++;
-                }
-                if (depth === 0) {
-                    let content = t.substring(i + 2, j - 1).trim();
-                    content = extractFootnotes(content); // Handle nested footnotes
-                    let currentFnNum = footnoteCount++;
-                    currentFootnotes.push(content);
-                    let safeContent = content.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                    let fnHtml = `<sup id="fnref:${currentFnNum}"><a style="color:var(--mc-green); cursor:pointer;" onclick="alert('${safeContent}')">[${currentFnNum}]</a></sup>`;
-                    t = t.substring(0, i) + fnHtml + t.substring(j);
-                    i += fnHtml.length;
-                } else {
-                    i += 2;
-                }
-            }
-            return t;
-        }
-
-        function preprocessMarkdown(text) {
-            currentCategories = [];
-            currentFootnotes = [];
-
-            // 1. Headers (== Heading ==) -> Direct HTML so it renders inside tables/divs
-            text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
-                let level = p1.length;
-                return `<h${level}>${p2}</h${level}>`;
-            });
-
-            // 2. Extract Categories
-            text = text.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
-                currentCategories.push(p1.trim());
-                return "";
-            });
-
-            // 3. Compile NamuMark (Tables, Nested Braces, Folding)
-            text = compileNamuMark(text);
-
-            // 4. Extract Footnotes (After Braces/Tables, BEFORE Text Formatting so * is not consumed)
-            text = extractFootnotes(text);
-
-            // 5. Text Formatting (Direct HTML so marked.js ignoring <td> won't break it)
-            // NamuMark Formatting
+        function processText(text) {
             text = text.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
             text = text.replace(/''(.*?)''/g, '<em>$1</em>');
             text = text.replace(/--(.*?)--/g, '<del>$1</del>');
@@ -637,11 +547,9 @@
             text = text.replace(/\^\^(.*?)\^\^/g, '<sup>$1</sup>');
             text = text.replace(/,,(.*?),,/g, '<sub>$1</sub>');
             
-            // Standard Markdown Formatting (so it works inside HTML blocks)
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-            // 6. Macros
             text = text.replace(/\[youtube\((.*?)\)\]/gi, (match, p1) => {
                 let id = p1.split(',')[0].trim();
                 return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
@@ -665,7 +573,6 @@
                 return diff > 0 ? `D-${diff}` : (diff === 0 ? `D-Day` : `D+${Math.abs(diff)}`);
             });
 
-            // 7. Files
             text = text.replace(/\[\[파일:(.*?)\]\]/gi, (match, p1) => {
                 let parts = p1.split('|');
                 let fileName = parts[0].trim();
@@ -691,7 +598,6 @@
                 }
             });
 
-            // 8. Wiki Links (Direct HTML for table support)
             text = text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
                 if (!p1.trim()) return match;
                 const parts = p1.split('|');
@@ -709,6 +615,152 @@
                 let display = parts.length > 1 ? parts.slice(1).join('|').trim() : page;
                 return `<a href="?page=${encodeURIComponent(page)}">${display}</a>`;
             });
+            
+            return text;
+        }
+
+        function compileNamuMark(text) {
+            let placeholders = [];
+            
+            function extractBlocks(t) {
+                let i = 0;
+                while (i < t.length) {
+                    let foundBrace = t.indexOf('{{{', i);
+                    let foundFoot = t.indexOf('[*', i);
+                    
+                    if (foundBrace === -1 && foundFoot === -1) break;
+                    
+                    let isBrace = false;
+                    let startIdx = -1;
+                    if (foundBrace !== -1 && (foundFoot === -1 || foundBrace < foundFoot)) {
+                        isBrace = true;
+                        startIdx = foundBrace;
+                    } else {
+                        startIdx = foundFoot;
+                    }
+                    
+                    let depth = 1;
+                    let j = startIdx + (isBrace ? 3 : 2);
+                    let closeLen = isBrace ? 3 : 1;
+                    
+                    while (j < t.length && depth > 0) {
+                        if (isBrace) {
+                            if (t.substr(j, 3) === '{{{') { depth++; j += 3; }
+                            else if (t.substr(j, 3) === '}}}') { depth--; j += 3; }
+                            else { j++; }
+                        } else {
+                            if (t[j] === '[') { depth++; j++; }
+                            else if (t[j] === ']') { depth--; j++; }
+                            else { j++; }
+                        }
+                    }
+                    
+                    if (depth === 0) {
+                        let innerContent = t.substring(startIdx + (isBrace ? 3 : 2), j - closeLen);
+                        innerContent = extractBlocks(innerContent); 
+                        
+                        let pId = `__MACRO_${placeholders.length}__`;
+                        placeholders.push({ type: isBrace ? 'brace' : 'foot', content: innerContent });
+                        
+                        t = t.substring(0, startIdx) + pId + t.substring(j);
+                        i = startIdx + pId.length;
+                    } else {
+                        i = startIdx + (isBrace ? 3 : 2);
+                    }
+                }
+                return t;
+            }
+
+            text = extractBlocks(text);
+            text = parseNamuTables(text);
+
+            function resolvePlaceholders(t) {
+                let maxPasses = 10;
+                while (t.includes('__MACRO_') && maxPasses-- > 0) {
+                    t = t.replace(/__MACRO_(\d+)__/g, (match, id) => {
+                        let obj = placeholders[parseInt(id)];
+                        let content = obj.content;
+                        content = parseNamuTables(content); // Process inner tables
+                        content = resolvePlaceholders(content); // Resolve inner macros
+                        content = processText(content); // Apply text formatting
+                        
+                        if (obj.type === 'brace') {
+                            if (content.startsWith('#!folding')) {
+                                let m = content.match(/^#\!folding\s+\[(.*?)\]\s*([\s\S]*)$/);
+                                if(m) return `<details style="margin:5px 0;"><summary style="cursor:pointer; font-weight:bold; color:var(--mc-green); display:inline-block;">${m[1]}</summary><div style="margin-top:10px;">\n\n${m[2]}\n\n</div></details>`;
+                            } else if (content.startsWith('#!wiki')) {
+                                let m = content.match(/^#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*)$/);
+                                if(m) return `<div style="${m[2]}">\n\n${m[3]}\n\n</div>`;
+                            } else if (content.match(/^[#+\-]/)) {
+                                let m = content.match(/^([#+\-][^ \n]+)\s+([\s\S]*)$/);
+                                if(m) {
+                                    let styleStr = "";
+                                    if (m[1].startsWith('#')) {
+                                        styleStr = `color:${m[1].split(',')[0]};`;
+                                    } else {
+                                        let size = parseInt(m[1]);
+                                        if (!isNaN(size)) styleStr = `font-size:${1 + (size * 0.2)}em;`;
+                                    }
+                                    return `<span style="${styleStr}">${m[2]}</span>`;
+                                }
+                            }
+                            return `<code>${content}</code>`;
+                        } else if (obj.type === 'foot') {
+                            let fnName = "";
+                            let fnText = "";
+                            if (content.startsWith(' ')) {
+                                fnText = content.substring(1);
+                            } else {
+                                let spaceIdx = content.indexOf(' ');
+                                if (spaceIdx === -1) {
+                                    let newlineIdx = content.indexOf('\n');
+                                    if (newlineIdx !== -1) {
+                                        fnName = content.substring(0, newlineIdx);
+                                        fnText = content.substring(newlineIdx + 1);
+                                    } else {
+                                        fnName = content;
+                                        fnText = "";
+                                    }
+                                } else {
+                                    fnName = content.substring(0, spaceIdx);
+                                    fnText = content.substring(spaceIdx + 1);
+                                }
+                            }
+                            
+                            let displayLabel = fnName ? fnName : footnoteCount;
+                            if (!fnName) footnoteCount++;
+                            
+                            let safeContent = encodeURIComponent(fnText);
+                            return `<sup id="fnref:${displayLabel}"><a style="color:var(--mc-green); cursor:pointer;" onclick="window.showFootnote(decodeURIComponent('${safeContent}'))">[${displayLabel}]</a></sup>`;
+                        }
+                    });
+                }
+                return t;
+            }
+
+            text = resolvePlaceholders(text);
+            text = processText(text); // Apply text formatting to outer text
+            return text;
+        }
+
+        function preprocessMarkdown(text) {
+            currentCategories = [];
+            footnoteCount = 1;
+
+            // 1. Headers
+            text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
+                let level = p1.length;
+                return `<h${level}>${p2}</h${level}>`;
+            });
+
+            // 2. Extract Categories
+            text = text.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
+                currentCategories.push(p1.trim());
+                return "";
+            });
+
+            // 3. Compile AST (Braces, Footnotes, Tables, Formatting)
+            text = compileNamuMark(text);
 
             return text;
         }
