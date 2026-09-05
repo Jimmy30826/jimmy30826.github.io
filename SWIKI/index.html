@@ -526,8 +526,8 @@
                             let isAttr = false;
                             
                             let eqIdx = attr.indexOf('=');
-                            let key = eqIdx !== -1 ? attr.substring(0, eqIdx) : attr;
-                            let val = eqIdx !== -1 ? attr.substring(eqIdx + 1) : "";
+                            let key = eqIdx !== -1 ? attr.substring(0, eqIdx).trim() : attr.trim();
+                            let val = eqIdx !== -1 ? attr.substring(eqIdx + 1).trim() : "";
                             
                             // add px if purely numeric
                             if (val && !isNaN(val)) val += 'px';
@@ -537,6 +537,8 @@
                             else if (key === ':') { cellStyle += 'text-align:center;'; isAttr = true; }
                             else if (key === ')') { cellStyle += 'text-align:right;'; isAttr = true; }
                             else if (key === '(') { cellStyle += 'text-align:left;'; isAttr = true; }
+                            else if (key === '^') { cellStyle += 'vertical-align:top;'; isAttr = true; }
+                            else if (key === 'v') { cellStyle += 'vertical-align:bottom;'; isAttr = true; }
                             else if (key === 'nopad') { cellStyle += 'padding:0;'; isAttr = true; }
                             else if (key === 'keepall') { cellStyle += 'word-break:keep-all;'; isAttr = true; }
                             else if (key === 'bgcolor') { cellStyle += `background-color:${val};`; hasBg = true; isAttr = true; }
@@ -551,7 +553,7 @@
                             else if (key === 'tablebgcolor') { tableStyle += `background-color:${val};`; isAttr = true; }
                             else if (key === 'tablewidth') { tableStyle += `width:${val};`; isAttr = true; }
                             else if (key === 'tablecolor') { tableStyle += `color:${val};`; isAttr = true; }
-                            else if (key === 'tablealign') { tableStyle += `margin:${val === 'right' ? '0 0 0 auto' : (val === 'center' ? 'auto' : '0')}; float:${val === 'right' ? 'right' : 'none'};`; isAttr = true; }
+                            else if (key === 'tablealign') { tableStyle += `margin:${val === 'right' ? '0 0 0 auto' : (val === 'center' ? 'auto' : '0 0 0 0')}; float:${val === 'right' ? 'right' : (val === 'center' ? 'none' : 'left')};`; isAttr = true; }
                             
                             if (isAttr) matchedAttrs.push(attrMatch[0]);
                         }
@@ -587,15 +589,15 @@
         }
 
         function processText(text) {
-            text = text.replace(/'''(.*?)'''/g, '<strong>$1</strong>');
-            text = text.replace(/''(.*?)''/g, '<em>$1</em>');
-            text = text.replace(/--(.*?)--/g, '<del>$1</del>');
-            text = text.replace(/__(.*?)__/g, '<u>$1</u>');
-            text = text.replace(/\^\^(.*?)\^\^/g, '<sup>$1</sup>');
-            text = text.replace(/,,(.*?),,/g, '<sub>$1</sub>');
+            text = text.replace(/'''([\s\S]*?)'''/g, '<strong>$1</strong>');
+            text = text.replace(/''([\s\S]*?)''/g, '<em>$1</em>');
+            text = text.replace(/--([\s\S]*?)--/g, '<del>$1</del>');
+            text = text.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            text = text.replace(/\^\^([\s\S]*?)\^\^/g, '<sup>$1</sup>');
+            text = text.replace(/,,([\s\S]*?),,/g, '<sub>$1</sub>');
             
-            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*([\s\S]*?)\*/g, '<em>$1</em>');
 
             text = text.replace(/\[youtube\((.*?)\)\]/gi, (match, p1) => {
                 let id = p1.split(',')[0].trim();
@@ -795,7 +797,7 @@
             footnoteCount = 1;
 
             // 1. Headers
-            text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
+            text = text.replace(/^[ \t]*(={1,6})[ \t]*(.*?)[ \t]*\1[ \t]*$/gm, (match, p1, p2) => {
                 let level = p1.length;
                 return `<h${level}>${p2}</h${level}>`;
             });
