@@ -405,6 +405,22 @@
 
         // --- NamuMark (the seed) Syntax Converter ---
         function convertNamuMark(text) {
+            let placeholders = [];
+
+            // 0. Extract Block Macros (Folding, Wiki style) to placeholders
+            // This prevents their internal newlines from breaking Table regex
+            text = text.replace(/\{\{\{#\!folding\s+\[(.*?)\]\s*([\s\S]*?)\}\}\}/g, (match, title, content) => {
+                let html = `<details class="mc-navbox" style="margin:10px 0;"><summary style="cursor:pointer; color:#0366d6; font-weight:bold;">[펼치기 / 접기] ${title}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone); margin-top:10px;">\n\n${content}\n\n</div></details>`;
+                placeholders.push(html);
+                return `__MACRO_${placeholders.length - 1}__`;
+            });
+
+            text = text.replace(/\{\{\{#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*?)\}\}\}/g, (match, quote, style, content) => {
+                let html = `<div style="${style}">\n\n${content}\n\n</div>`;
+                placeholders.push(html);
+                return `__MACRO_${placeholders.length - 1}__`;
+            });
+
             // 1. Headers (== Heading ==)
             text = text.replace(/^(={1,6})\s*(.*?)\s*\1\s*$/gm, (match, p1, p2) => {
                 return '#'.repeat(p1.length) + ' ' + p2;
@@ -448,16 +464,6 @@
                 return diff > 0 ? `D-${diff}` : (diff === 0 ? `D-Day` : `D+${Math.abs(diff)}`);
             });
             
-            // 4. Folding (접기/펼치기)
-            text = text.replace(/\{\{\{#\!folding\s+\[(.*?)\]\n([\s\S]*?)\}\}\}/g, (match, title, content) => {
-                return `<details class="mc-navbox" style="margin:10px 0;"><summary>${title}</summary><div style="padding:15px; border-top:1px solid var(--mc-stone);">\n\n${content}\n\n</div></details>`;
-            });
-
-            // 5. Wiki style (정렬 등)
-            text = text.replace(/\{\{\{#\!wiki\s+style=(["'])(.*?)\1\n([\s\S]*?)\}\}\}/g, (match, quote, style, content) => {
-                return `<div style="${style}">\n\n${content}\n\n</div>`;
-            });
-
             // 6. Advanced Tables (나무위키 표 지원)
             text = text.replace(/(?:^\|\|.*?\|\|\s*(?:\n|$))+/gm, (match) => {
                 let lines = match.trim().split('\n');
@@ -512,29 +518,38 @@
             });
             
             // 5. Namuwiki Media (File) Macro
-            // e.g. [[파일:image.png]] or [[파일:video.mp4|width=100%]]
             text = text.replace(/\[\[파일:(.*?)\]\]/gi, (match, p1) => {
                 let parts = p1.split('|');
                 let fileName = parts[0].trim();
                 let widthAttr = "";
                 if (parts.length > 1) {
-                    let options = parts[1].trim();
-                    let widthMatch = options.match(/width=([0-9a-zA-Z%]+)/);
-                    if (widthMatch) widthAttr = ` width="${widthMatch[1]}"`;
+                    for (let i = 1; i < parts.length; i++) {
+                        if (parts[i].includes('width=')) {
+                            widthAttr = `width="${parts[i].split('=')[1]}"`;
+                        }
+                    }
                 }
-                
                 let ext = fileName.split('.').pop().toLowerCase();
-                let src = `assets/${fileName}`;
+                let basePath = `assets/${fileName}`;
                 
-                if (['mp4', 'webm', 'ogg'].includes(ext)) {
-                    return `<video controls style="max-width:100%; border-radius:5px;"${widthAttr}><source src="${src}" type="video/${ext}"></video>`;
-                } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
-                    return `<audio controls src="${src}"></audio>`;
+                if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+                    return `<img src="${basePath}" ${widthAttr} style="max-width:100%; height:auto;" alt="${fileName}">`;
+                } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                    return `<video src="${basePath}" ${widthAttr} controls style="max-width:100%;"></video>`;
+                } else if (['mp3', 'wav', 'flac'].includes(ext)) {
+                    return `<audio src="${basePath}" controls style="width:100%;"></audio>`;
                 } else {
-                    return `<img src="${src}" style="max-width:100%; border-radius:5px;"${widthAttr}>`;
+                    return `[파일: ${fileName}]`; // Fallback
                 }
             });
-            
+
+            // Restore Placeholders (run twice to support 1 level of nesting if needed)
+            for (let loop = 0; loop < 2; loop++) {
+                for (let i = 0; i < placeholders.length; i++) {
+                    text = text.replace(`__MACRO_${i}__`, placeholders[i]);
+                }
+            }
+
             return text;
         }
 
@@ -563,7 +578,9 @@
             });
             
             // 3. Wiki Links: [[...]]
-            text = text.replace(/\[\[([^\]]+)\]\]/g, (match, p1) => {
+            text = text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
+                if (!p1.trim()) return match; // skip empty links like [[]]
+
                 const parts = p1.split('|');
                 let page = parts[0].trim();
                 
