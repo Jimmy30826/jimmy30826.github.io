@@ -727,8 +727,7 @@
             text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
 
             let inList = false;
-            let lines = text.split('
-');
+            let lines = text.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(/^\s*[-*]\s+(.*)$/)) {
                     lines[i] = lines[i].replace(/^\s*[-*]\s+(.*)$/, '<li>$1</li>');
@@ -739,12 +738,10 @@
                 }
             }
             if (inList) lines[lines.length - 1] += '</ul>';
-            text = lines.join('
-');
+            text = lines.join('\n');
 
             let inTable = false;
-            lines = text.split('
-');
+            lines = text.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 if (line.startsWith('|') && line.endsWith('|')) {
@@ -767,14 +764,10 @@
                 }
             }
             if (inTable) lines[lines.length - 1] += '</tbody></table>';
-            text = lines.join('
-');
+            text = lines.join('\n');
 
-            text = text.replace(/
-
-+/g, '<br><br>');
-            text = text.replace(/([^>])
-([^<])/g, '$1<br>$2');
+            text = text.replace(/\n\n+/g, '<br><br>');
+            text = text.replace(/([^>])\n([^<])/g, '$1<br>$2');
 
             codeBlocks.forEach((code, index) => {
                 text = text.replace(`%%%CODEBLOCK_${index}%%%`, code);
