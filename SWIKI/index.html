@@ -472,8 +472,8 @@
                     });
                     html += `</ul>`;
                     viewerEl.innerHTML = html;
-                if (typeof generateTOC === \'function\') generateTOC(viewerEl);
-                if (typeof renderFootnotes === \'function\') renderFootnotes(viewerEl);
+                if (typeof generateTOC === 'function') generateTOC(viewerEl);
+                if (typeof renderFootnotes === 'function') renderFootnotes(viewerEl);
                 } else {
                     viewerEl.innerHTML = `<div style="padding: 20px;"><i class="fa-solid fa-circle-info"></i> 이 분류에 속한 문서가 없습니다.</div>`;
                 }
@@ -522,8 +522,8 @@
                     });
                     html += `</ul>`;
                     viewerEl.innerHTML = html;
-                if (typeof generateTOC === \'function\') generateTOC(viewerEl);
-                if (typeof renderFootnotes === \'function\') renderFootnotes(viewerEl);
+                if (typeof generateTOC === 'function') generateTOC(viewerEl);
+                if (typeof renderFootnotes === 'function') renderFootnotes(viewerEl);
                 } else {
                     viewerEl.innerHTML = `<div style="padding: 20px;"><i class="fa-solid fa-circle-info"></i> 이 문서로 연결되는 역링크가 없습니다.</div>`;
                 }
@@ -903,8 +903,7 @@
                 const fileDiff = commitData.files.find(f => f.filename === path);
                 
                 if (fileDiff && fileDiff.patch) {
-                    const lines = fileDiff.patch.split('
-');
+                    const lines = fileDiff.patch.split('\n');
                     let diffHtml = "";
                     lines.forEach(line => {
                         let cls = "";
@@ -998,8 +997,7 @@
                 });
 
                 if (res.ok) {
-                    alert("성공적으로 Github에 커밋되었습니다!
-(Github Pages 반영까지 1~2분 정도 소요될 수 있습니다.)");
+                        alert("문서가 Github에 커밋되었습니다!\n(Github Pages 반영까지 1~2분 정도 소요될 수 있습니다.)");
                     window.location.reload();
                 } else {
                     const error = await res.json();
@@ -1217,8 +1215,8 @@
                 }
                 
                 viewerEl.innerHTML = html;
-                if (typeof generateTOC === \'function\') generateTOC(viewerEl);
-                if (typeof renderFootnotes === \'function\') renderFootnotes(viewerEl);
+                if (typeof generateTOC === 'function') generateTOC(viewerEl);
+                if (typeof renderFootnotes === 'function') renderFootnotes(viewerEl);
                 
             } catch(e) {
                 viewerEl.innerHTML = `<div style="color:red; padding: 20px;"><i class="fa-solid fa-triangle-exclamation"></i> 검색 중 오류가 발생했습니다: ${e.message}</div>`;
