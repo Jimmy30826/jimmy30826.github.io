@@ -894,8 +894,8 @@
                 
                 selectedHistoryContent = decodeURIComponent(escape(atob(contentData.content)));
                 document.getElementById('history-content-raw').textContent = selectedHistoryContent;
-                const preprocessed = preprocessMarkdown(selectedHistoryContent);
-                document.getElementById('history-content-rendered').innerHTML = marked.parse(preprocessed);
+                    let html = parseMarkdown(selectedHistoryContent);
+                    document.getElementById('history-content-rendered').innerHTML = html;
                 
                 const commitUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits/${sha}`;
                 const commitRes = await fetch(commitUrl, { headers });
@@ -953,11 +953,25 @@
             previewDebounceTimer = setTimeout(async () => {
                 const rawText = inputEl.value;
                 const expanded = await expandTemplates(rawText);
-                const preprocessed = preprocessMarkdown(expanded);
-                previewEl.innerHTML = marked.parse(preprocessed);
-                generateTOC(previewEl);
-                renderCategories(previewEl);
-                renderFootnotes(previewEl);
+                let html = parseMarkdown(expanded);
+                
+                let currentCategories = [];
+                html = html.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
+                    currentCategories.push(p1.trim());
+                    return "";
+                });
+                
+                if (currentCategories.length > 0) {
+                    let catHtml = '<div style="margin-top: 30px; padding: 10px; border: 1px solid var(--mc-stone); border-radius: 5px; background: rgba(0,0,0,0.05);">';
+                    catHtml += '<strong>분류: </strong>';
+                    catHtml += currentCategories.map(c => `<a href="?page=${encodeURIComponent(c)}" style="color:var(--mc-green); text-decoration:none;">${c}</a>`).join(' | ');
+                    catHtml += '</div>';
+                    html += catHtml;
+                }
+                
+                previewEl.innerHTML = html;
+                if (typeof generateTOC === 'function') generateTOC(previewEl);
+                if (typeof renderFootnotes === 'function') renderFootnotes(previewEl);
             }, 300);
         });
 
