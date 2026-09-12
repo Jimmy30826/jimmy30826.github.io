@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     
-    <!-- HTML 파서 (Marked.js) -->
+    <!-- 마크다운 파서 (Marked.js) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
     
@@ -265,7 +265,7 @@
             <!-- Editor -->
             <div id="editor-container">
                 <div style="background: #e8f5e9; padding: 10px; border-left: 4px solid var(--mc-green); font-size: 0.9rem;">
-                    <strong>안내:</strong> HTML 코드로 작성하세요. 우측(모바일은 하단)에 실시간 미리보기가 제공됩니다. 저장 시 Github 저장소로 직접 커밋됩니다.
+                    <strong>안내:</strong> 마크다운(Markdown) 문법으로 작성하세요. 우측(모바일은 하단)에 실시간 미리보기가 제공됩니다. 저장 시 Github 저장소로 직접 커밋됩니다.
                     <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <strong style="color: var(--mc-dark-brown);"><i class="fa-solid fa-user-pen"></i> 편집자: <span id="current-editor-id" style="color: #000;"></span></strong>
                         <input type="text" id="commit-message" placeholder="편집 요약을 입력하세요 (예: 오타 수정, 내용 추가)" style="flex: 1; min-width: 200px; padding: 5px; border: 2px solid var(--mc-stone); font-family: inherit; outline: none;">
@@ -279,7 +279,7 @@
                     </div>
                 </div>
                 <div class="editor-split">
-                    <textarea id="markdown-input" placeholder="이곳에 HTML으로 내용을 작성하세요..."></textarea>
+                    <textarea id="markdown-input" placeholder="이곳에 마크다운으로 내용을 작성하세요..."></textarea>
                     <div id="markdown-preview" class="markdown-body">
                         <!-- Preview rendered here -->
                     </div>
@@ -405,6 +405,504 @@
         });
 
         // --- NamuMark (the seed) Syntax Converter ---
+        let currentCategories = [];
+        let footnoteCount = 1;
+
+        window.showFootnote = function(contentHtml, event) {
+            let tooltip = document.getElementById('fn-tooltip');
+            if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.id = 'fn-tooltip';
+                tooltip.style.cssText = "position:absolute; padding:15px; border:2px solid var(--mc-stone); border-radius:8px; background:white; color:black; color:var(--mc-text-color, black); max-width:350px; box-shadow:0 6px 15px rgba(0,0,0,0.2); z-index:9999; font-size:0.95em; line-height:1.5;";
+                document.body.appendChild(tooltip);
+                
+                document.addEventListener('click', (e) => {
+                    if (tooltip.style.display === 'block' && !tooltip.contains(e.target)) {
+                        tooltip.style.display = 'none';
+                    }
+                });
+            }
+            
+            tooltip.innerHTML = contentHtml;
+            tooltip.style.display = 'block';
+            
+            let rect = event.target.getBoundingClientRect();
+            let top = rect.bottom + window.scrollY + 8;
+            let left = rect.left + window.scrollX - 10;
+            
+            if (left + 350 > window.innerWidth) {
+                left = window.innerWidth - 370;
+                if (left < 10) left = 10;
+            }
+            
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+            event.stopPropagation();
+        };
+
+        function parseNamuTables(text) {
+            let lines = text.split('\n');
+            let outLines = [];
+            let inTable = false;
+            let tableStyle = "";
+            let tableBorderColor = "var(--mc-stone)";
+            let colBg = {};
+            let colColor = {};
+            let rows = [];
+
+            function flushTable() {
+                if (!inTable) return;
+                let tHtml = `<table class="mc-table" style="border-collapse:collapse; margin:10px 0; width:auto; border:2px solid ${tableBorderColor};">`;
+                let tStyle = tableStyle;
+                tHtml += '<tbody>';
+                rows.forEach(row => {
+                    tHtml += `<tr style="${row.rowStyle}">`;
+                    let colIdx = 0;
+                    row.cells.forEach(cell => {
+                        let innerText = cell.content.trim();
+                        let stripped = innerText.trimStart();
+                        let attrsToRemove = [...cell.matchedAttrs];
+                        while (attrsToRemove.length > 0) {
+                            let found = false;
+                            for (let i = 0; i < attrsToRemove.length; i++) {
+                                if (stripped.startsWith(attrsToRemove[i])) {
+                                    stripped = stripped.substring(attrsToRemove[i].length).trimStart();
+                                    attrsToRemove.splice(i, 1);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) break; 
+                        }
+                        
+                        let appliedBg = cell.hasBg ? "" : (colBg[colIdx] ? `background-color:${colBg[colIdx]};` : "");
+                        let appliedColor = cell.hasColor ? "" : (colColor[colIdx] ? `color:${colColor[colIdx]};` : "");
+                        
+                        tHtml += `<td style="border:2px solid ${tableBorderColor}; padding:10px; ${cell.cellStyle} ${appliedBg} ${appliedColor}"${cell.cellAttrHtml}>${stripped}</td>`;
+                        colIdx += cell.colspan;
+                    });
+                    tHtml += '</tr>';
+                });
+                tHtml += '</tbody></table>';
+                if (tStyle) {
+                    tHtml = tHtml.replace(';">', `; ${tStyle}">`);
+                }
+                outLines.push(tHtml);
+                inTable = false;
+                tableStyle = "";
+                tableBorderColor = "var(--mc-stone)";
+                colBg = {};
+                colColor = {};
+                rows = [];
+            }
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                if (line.trim().startsWith('||')) {
+                    if (!inTable) {
+                        inTable = true;
+                        colBg = {};
+                        colColor = {};
+                    }
+                    let cells = line.split('||');
+                    if (cells.length > 0 && cells[0].trim() === '') cells.shift();
+                    if (cells.length > 0 && cells[cells.length - 1].trim() === '') cells.pop();
+                    if (cells.length === 0) cells = [""];
+                    
+                    let colIdxTracker = 0;
+                    let parsedCells = cells.map(cell => {
+                        let cellAttrHtml = '';
+                        let cellStyle = '';
+                        let innerText = cell;
+                        let rowStyle = '';
+                        let matchedAttrs = [];
+                        let colspan = 1;
+                        let hasBg = false;
+                        let hasColor = false;
+                        
+                        let attrRegex = /<([^>]+)>/g;
+                        let attrMatch;
+                        while ((attrMatch = attrRegex.exec(innerText)) !== null) {
+                            let attr = attrMatch[1].trim();
+                            let isAttr = false;
+                            
+                            let eqIdx = attr.indexOf('=');
+                            let key = eqIdx !== -1 ? attr.substring(0, eqIdx).trim() : attr.trim();
+                            let val = eqIdx !== -1 ? attr.substring(eqIdx + 1).trim() : "";
+                            
+                            // add px if purely numeric
+                            if (val && !isNaN(val)) val += 'px';
+                            
+                            if (key.startsWith('-')) { colspan = parseInt(key.substring(1)); cellAttrHtml += ` colspan="${colspan}"`; isAttr = true; }
+                            else if (key.startsWith('|')) { cellAttrHtml += ` rowspan="${key.substring(1)}"`; isAttr = true; }
+                            else if (key === ':') { cellStyle += 'text-align:center;'; isAttr = true; }
+                            else if (key === ')') { cellStyle += 'text-align:right;'; isAttr = true; }
+                            else if (key === '(') { cellStyle += 'text-align:left;'; isAttr = true; }
+                            else if (key === '^') { cellStyle += 'vertical-align:top;'; isAttr = true; }
+                            else if (key === 'v') { cellStyle += 'vertical-align:bottom;'; isAttr = true; }
+                            else if (key === 'nopad') { cellStyle += 'padding:0;'; isAttr = true; }
+                            else if (key === 'keepall') { cellStyle += 'word-break:keep-all;'; isAttr = true; }
+                            else if (key === 'bgcolor') { cellStyle += `background-color:${val};`; hasBg = true; isAttr = true; }
+                            else if (key === 'color') { cellStyle += `color:${val};`; hasColor = true; isAttr = true; }
+                            else if (key === 'width') { cellStyle += `width:${val};`; isAttr = true; }
+                            else if (key === 'height') { cellStyle += `height:${val};`; isAttr = true; }
+                            else if (key === 'rowbgcolor') { rowStyle += `background-color:${val};`; isAttr = true; }
+                            else if (key === 'rowcolor') { rowStyle += `color:${val};`; isAttr = true; }
+                            else if (key === 'colbgcolor') { colBg[colIdxTracker] = val; cellStyle += `background-color:${val};`; hasBg = true; isAttr = true; }
+                            else if (key === 'colcolor') { colColor[colIdxTracker] = val; cellStyle += `color:${val};`; hasColor = true; isAttr = true; }
+                            else if (key === 'tablebordercolor') { tableBorderColor = val; tableStyle += `border-color:${val};`; isAttr = true; }
+                            else if (key === 'tablebgcolor') { tableStyle += `background-color:${val};`; isAttr = true; }
+                            else if (key === 'tablewidth') { tableStyle += `width:${val};`; isAttr = true; }
+                            else if (key === 'tablecolor') { tableStyle += `color:${val};`; isAttr = true; }
+                            else if (key === 'tablealign') { tableStyle += `margin:${val === 'right' ? '0 0 0 auto' : (val === 'center' ? 'auto' : '0 0 0 0')}; float:${val === 'right' ? 'right' : (val === 'center' ? 'none' : 'left')};`; isAttr = true; }
+                            
+                            if (isAttr) matchedAttrs.push(attrMatch[0]);
+                        }
+                        
+                        let result = { cellAttrHtml, cellStyle, content: innerText, rowStyle, matchedAttrs, colspan, hasBg, hasColor };
+                        colIdxTracker += colspan;
+                        return result;
+                    });
+                    
+                    let finalRowStyle = "";
+                    parsedCells.forEach(c => { if(c.rowStyle) finalRowStyle = c.rowStyle; });
+                    rows.push({ rowStyle: finalRowStyle, cells: parsedCells });
+                    
+                } else {
+                    if (inTable && line.trim() !== '') {
+                        if (rows.length > 0) {
+                            let lastRow = rows[rows.length - 1];
+                            if (lastRow.cells.length > 0) {
+                                lastRow.cells[lastRow.cells.length - 1].content += '\n' + line;
+                                continue;
+                            }
+                        }
+                    } else if (inTable && line.trim() === '') {
+                        flushTable();
+                        outLines.push(line);
+                    } else {
+                        outLines.push(line);
+                    }
+                }
+            }
+            flushTable();
+            return outLines.join('\n');
+        }
+
+        function processText(text) {
+            text = text.replace(/'''([\s\S]*?)'''/g, '<strong>$1</strong>');
+            text = text.replace(/''([\s\S]*?)''/g, '<em>$1</em>');
+            text = text.replace(/--([\s\S]*?)--/g, '<del>$1</del>');
+            text = text.replace(/__([\s\S]*?)__/g, '<u>$1</u>');
+            text = text.replace(/\^\^([\s\S]*?)\^\^/g, '<sup>$1</sup>');
+            text = text.replace(/,,([\s\S]*?),,/g, '<sub>$1</sub>');
+            
+            text = text.replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*([\s\S]*?)\*/g, '<em>$1</em>');
+
+            text = text.replace(/\[youtube\((.*?)\)\]/gi, (match, p1) => {
+                let id = p1.split(',')[0].trim();
+                return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;"><iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe></div>`;
+            });
+            text = text.replace(/\[br\]/gi, '<br>');
+            text = text.replace(/\[math\((.*?)\)\]/gi, '$$$1$$');
+            text = text.replace(/\[ruby\((.*?),\s*ruby=(.*?)\)\]/gi, '<ruby>$1<rt>$2</rt></ruby>');
+            text = text.replace(/\[clearfix\]/gi, '<div style="clear:both;"></div>');
+            
+            let dateStr = new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'});
+            text = text.replace(/\[date\]/gi, dateStr);
+            text = text.replace(/\[age\((.*?)\)\]/gi, (match, p1) => {
+                let birth = new Date(p1);
+                if(isNaN(birth)) return match;
+                return Math.abs(new Date(Date.now() - birth.getTime()).getUTCFullYear() - 1970);
+            });
+            text = text.replace(/\[dday\((.*?)\)\]/gi, (match, p1) => {
+                let target = new Date(p1);
+                if(isNaN(target)) return match;
+                let diff = Math.ceil((target.getTime() - Date.now()) / (1000 * 3600 * 24));
+                return diff > 0 ? `D-${diff}` : (diff === 0 ? `D-Day` : `D+${Math.abs(diff)}`);
+            });
+
+            text = text.replace(/\[\[파일:(.*?)\]\]/gi, (match, p1) => {
+                let parts = p1.split('|');
+                let fileName = parts[0].trim();
+                let widthAttr = "";
+                if (parts.length > 1) {
+                    for (let i = 1; i < parts.length; i++) {
+                        if (parts[i].includes('width=')) {
+                            widthAttr = `width="${parts[i].split('=')[1]}"`;
+                        }
+                    }
+                }
+                let ext = fileName.split('.').pop().toLowerCase();
+                let basePath = `assets/${fileName}`;
+                
+                if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+                    return `<img src="${basePath}" ${widthAttr} style="max-width:100%; height:auto;" alt="${fileName}">`;
+                } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                    return `<video src="${basePath}" ${widthAttr} controls style="max-width:100%;"></video>`;
+                } else if (['mp3', 'wav', 'flac'].includes(ext)) {
+                    return `<audio src="${basePath}" controls style="width:100%;"></audio>`;
+                } else {
+                    return `<span style="color:red; cursor:pointer;" onclick="alert('지원하지 않는 미디어이거나 파일 문법에 오류가 있습니다: ${fileName}')">[문법 오류!]</span>`;
+                }
+            });
+
+            text = text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
+                if (!p1.trim()) return match;
+                const parts = p1.split('|');
+                let page = parts[0].trim();
+                if (page.startsWith('/')) {
+                    page = currentPage + page;
+                } else if (page.startsWith('../')) {
+                    let pathParts = currentPage.split('/');
+                    pathParts.pop();
+                    let basePath = pathParts.join('/');
+                    if (basePath === '') basePath = currentPage;
+                    let remaining = page.substring(3);
+                    page = remaining ? basePath + '/' + remaining : basePath;
+                }
+                let display = parts.length > 1 ? parts.slice(1).join('|').trim() : page;
+                return `<a href="?page=${encodeURIComponent(page)}">${display}</a>`;
+            });
+            
+            return text;
+        }
+
+        function compileNamuMark(text) {
+            let placeholders = [];
+            
+            function extractBlocks(t) {
+                let i = 0;
+                while (i < t.length) {
+                    let foundBrace = t.indexOf('{{{', i);
+                    let foundFoot = t.indexOf('[*', i);
+                    
+                    if (foundBrace === -1 && foundFoot === -1) break;
+                    
+                    let isBrace = false;
+                    let startIdx = -1;
+                    if (foundBrace !== -1 && (foundFoot === -1 || foundBrace < foundFoot)) {
+                        isBrace = true;
+                        startIdx = foundBrace;
+                    } else {
+                        startIdx = foundFoot;
+                    }
+                    
+                    let depth = 1;
+                    let j = startIdx + (isBrace ? 3 : 2);
+                    let closeLen = isBrace ? 3 : 1;
+                    
+                    while (j < t.length && depth > 0) {
+                        if (isBrace) {
+                            if (t.substr(j, 3) === '{{{') { depth++; j += 3; }
+                            else if (t.substr(j, 3) === '}}}') { depth--; j += 3; }
+                            else { j++; }
+                        } else {
+                            if (t[j] === '[') { depth++; j++; }
+                            else if (t[j] === ']') { depth--; j++; }
+                            else { j++; }
+                        }
+                    }
+                    
+                    if (depth === 0) {
+                        let innerContent = t.substring(startIdx + (isBrace ? 3 : 2), j - closeLen);
+                        innerContent = extractBlocks(innerContent); 
+                        
+                        let pId = `__MACRO_${placeholders.length}__`;
+                        placeholders.push({ type: isBrace ? 'brace' : 'foot', content: innerContent });
+                        
+                        t = t.substring(0, startIdx) + pId + t.substring(j);
+                        i = startIdx + pId.length;
+                    } else {
+                        i = startIdx + (isBrace ? 3 : 2);
+                    }
+                }
+                return t;
+            }
+
+            text = extractBlocks(text);
+            text = parseNamuTables(text);
+
+            function resolvePlaceholders(t) {
+                let maxPasses = 10;
+                while (t.includes('__MACRO_') && maxPasses-- > 0) {
+                    t = t.replace(/__MACRO_(\d+)__/g, (match, id) => {
+                        let obj = placeholders[parseInt(id)];
+                        let content = obj.content;
+                        content = parseNamuTables(content); // Process inner tables
+                        content = resolvePlaceholders(content); // Resolve inner macros
+                        content = processText(content); // Apply text formatting
+                        
+                        if (obj.type === 'brace') {
+                            if (content.startsWith('#!folding')) {
+                                let m = content.match(/^#\!folding\s+\[(.*?)\]\s*([\s\S]*)$/);
+                                if(m) return `<details style="margin:5px 0;"><summary style="cursor:pointer; font-weight:bold; color:var(--mc-green); display:inline-block;">${m[1]}</summary><div style="margin-top:10px;">\n\n${m[2]}\n\n</div></details>`;
+                            } else if (content.startsWith('#!wiki')) {
+                                let m = content.match(/^#\!wiki\s+style=(["'])(.*?)\1\s*([\s\S]*)$/);
+                                if(m) return `<div style="${m[2]}">\n\n${m[3]}\n\n</div>`;
+                            } else if (content.match(/^[#+\-]/)) {
+                                let m = content.match(/^([#+\-][^ \n]+)\s+([\s\S]*)$/);
+                                if(m) {
+                                    let styleStr = "";
+                                    if (m[1].startsWith('#')) {
+                                        styleStr = `color:${m[1].split(',')[0]};`;
+                                    } else {
+                                        let size = parseInt(m[1]);
+                                        if (!isNaN(size)) styleStr = `font-size:${1 + (size * 0.2)}em;`;
+                                    }
+                                    return `<span style="${styleStr}">${m[2]}</span>`;
+                                }
+                            }
+                            return `<code>${content}</code>`;
+                        } else if (obj.type === 'foot') {
+                            let fnName = "";
+                            let fnText = "";
+                            if (content.startsWith(' ')) {
+                                fnText = content.substring(1);
+                            } else {
+                                let spaceIdx = content.indexOf(' ');
+                                if (spaceIdx === -1) {
+                                    let newlineIdx = content.indexOf('\n');
+                                    if (newlineIdx !== -1) {
+                                        fnName = content.substring(0, newlineIdx);
+                                        fnText = content.substring(newlineIdx + 1);
+                                    } else {
+                                        fnName = content;
+                                        fnText = "";
+                                    }
+                                } else {
+                                    fnName = content.substring(0, spaceIdx);
+                                    fnText = content.substring(spaceIdx + 1);
+                                }
+                            }
+                            
+                            let displayLabel = fnName ? fnName : footnoteCount;
+                            if (!fnName) footnoteCount++;
+                            
+                            let safeContent = encodeURIComponent(fnText);
+                            return `<sup id="fnref:${displayLabel}"><a style="color:var(--mc-green); cursor:pointer;" class="fn-link" onclick="window.showFootnote(decodeURIComponent('${safeContent}'), event)">[${displayLabel}]</a></sup>`;
+                        }
+                    });
+                }
+                return t;
+            }
+
+            text = resolvePlaceholders(text);
+            text = processText(text); // Apply text formatting to outer text
+            return text;
+        }
+
+        function preprocessMarkdown(text) {
+            currentCategories = [];
+            footnoteCount = 1;
+
+            // 1. Headers
+            text = text.replace(/^[ \t]*(={1,6})[ \t]*(.*?)[ \t]*\1[ \t]*$/gm, (match, p1, p2) => {
+                let level = p1.length;
+                return `<h${level}>${p2}</h${level}>`;
+            });
+
+            // 2. Extract Categories
+            text = text.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
+                currentCategories.push(p1.trim());
+                return "";
+            });
+
+            // 3. Compile AST (Braces, Footnotes, Tables, Formatting)
+            text = compileNamuMark(text);
+
+            return text;
+        }
+
+        // Render Categories Box
+        function renderCategories(container) {
+            const oldBox = container.querySelector('.mc-category-box');
+            if (oldBox) oldBox.remove();
+            
+            if (currentCategories.length > 0) {
+                let html = `<div class="mc-category-box"><i class="fa-solid fa-tags"></i> <strong>분류:</strong> `;
+                html += currentCategories.map(c => `<a href="?category=${encodeURIComponent(c)}">${c}</a>`).join('');
+                html += `</div>`;
+                container.insertBefore(document.createRange().createContextualFragment(html), container.firstChild);
+            }
+        }
+        
+        // Render Footnotes
+        function renderFootnotes(container) {
+            const oldFns = container.querySelector('.mc-footnotes');
+            if (oldFns) oldFns.remove();
+            
+            if (currentFootnotes.length > 0) {
+                let fnHtml = `<div class="mc-footnotes" style="margin-top: 40px; padding-top: 15px; border-top: 2px dashed #ccc; font-size: 0.9rem;">`;
+                currentFootnotes.forEach((fn, idx) => {
+                    const fnNum = idx + 1;
+                    fnHtml += `<div id="fn-${fnNum}" style="margin-bottom: 5px;">
+                        <a href="#fnref-${fnNum}" style="color:var(--mc-dark-green); font-weight:bold; text-decoration:none; margin-right:5px;">[${fnNum}]</a> ${fn}
+                    </div>`;
+                });
+                fnHtml += `</div>`;
+                container.insertAdjacentHTML('beforeend', fnHtml);
+            }
+        }
+
+        // Fetch a document's raw Markdown
+        async function fetchDocumentRaw(pageName) {
+            const path = `SWIKI/docs/${pageName}.md`;
+            if (loggedIn) {
+                try {
+                    const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`, {
+                        headers: { 'Authorization': `token ${ghToken}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        return { content: decodeURIComponent(escape(atob(data.content))), sha: data.sha };
+                    }
+                } catch(e) {}
+            }
+            try {
+                const res = await fetch(`docs/${pageName}.md?t=${Date.now()}`);
+                if (res.ok) {
+                    return { content: await res.text(), sha: null };
+                }
+            } catch(e) {}
+            return null;
+        }
+
+        // Expand Templates: [include(문서명)]
+        async function expandTemplates(text, depth = 0) {
+            if (depth > 3) return text; // Prevent infinite loops
+            
+            const templateRegex = /\[include\((.*?)\)\]/g;
+            let matches;
+            const templatesToFetch = new Set();
+            while ((matches = templateRegex.exec(text)) !== null) {
+                templatesToFetch.add(matches[1].trim());
+            }
+            
+            if (templatesToFetch.size === 0) return text;
+            
+            const templateContents = {};
+            const promises = Array.from(templatesToFetch).map(async (tpl) => {
+                // Support Namuwiki '틀:' syntax by replacing it with Windows-compatible '틀_'
+                let fetchName = tpl;
+                if (fetchName.startsWith('틀:')) fetchName = fetchName.replace('틀:', '틀_');
+
+                const doc = await fetchDocumentRaw(fetchName);
+                if (doc && doc.content) {
+                    templateContents[tpl] = await expandTemplates(doc.content, depth + 1);
+                } else {
+                    templateContents[tpl] = `> **[오류]** '${tpl}' 틀을 불러올 수 없습니다.`;
+                }
+            });
+            
+            await Promise.all(promises);
+            
+            return text.replace(templateRegex, (match, p1) => {
+                return templateContents[p1.trim()];
+            });
+        }
+
         // Generate Table of Contents (TOC) and Auto-Numbering
         function generateTOC(container) {
             const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -595,7 +1093,7 @@
                 const lastEditedEl = document.getElementById('last-edited-time');
                 if (lastEditedEl) {
                     lastEditedEl.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> 수정 시각 확인 중...";
-                    const commitApiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits?path=SWIKI/docs/${currentPage}.html&per_page=1`;
+                    const commitApiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/commits?path=SWIKI/docs/${currentPage}.md&per_page=1`;
                     fetch(commitApiUrl, { headers: ghToken ? { 'Authorization': `token ${ghToken}` } : {} })
                         .then(res => res.ok ? res.json() : [])
                         .then(commits => {
@@ -627,7 +1125,7 @@
             viewerActions.style.display = 'none';
             editorEl.style.display = 'flex';
             editorActions.style.display = 'flex';
-            inputEl.value = originalContent || `<h1>${currentPage}</h1>\n\n`;
+            inputEl.value = originalContent || `# ${currentPage}\n\n`;
             document.getElementById('commit-message').value = ""; // 초기화
             
             const lastEditedEl = document.getElementById('last-edited-time');
@@ -656,7 +1154,7 @@
             document.getElementById('history-list').innerHTML = "불러오는 중...";
             document.getElementById('history-details').style.display = 'none';
 
-            const path = `SWIKI/docs/${currentPage}.html`;
+            const path = `SWIKI/docs/${currentPage}.md`;
             const url = `https://api.github.com/repos/${repoOwner}/${repoName}/commits?path=${path}`;
             
             try {
@@ -697,7 +1195,7 @@
             document.getElementById('history-content-diff').innerHTML = "로딩 중...";
             showHistoryTab('rendered');
 
-            const path = `SWIKI/docs/${currentPage}.html`;
+            const path = `SWIKI/docs/${currentPage}.md`;
             const headers = ghToken ? { 'Authorization': `token ${ghToken}` } : {};
             
             try {
@@ -791,7 +1289,7 @@
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 커밋 중...';
 
-            const path = `SWIKI/docs/${currentPage}.html`;
+            const path = `SWIKI/docs/${currentPage}.md`;
             const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`;
             
             const body = {
@@ -901,7 +1399,7 @@
                 const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs`, { headers });
                 if (res.ok) {
                     files = await res.json();
-                    allDocumentsCache = files.filter(f => f.name.endsWith('.html')).map(f => f.name.replace('.html', ''));
+                    allDocumentsCache = files.filter(f => f.name.endsWith('.md')).map(f => f.name.replace('.md', ''));
                     return allDocumentsCache;
                 }
             } catch(e) {}
