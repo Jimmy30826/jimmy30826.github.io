@@ -535,11 +535,11 @@
         // Fetch Page Content
         
         async function fetchDocumentRaw(pageName) {
-            const path = SWIKI/docs/.html;
+            const path = `SWIKI/docs/${pageName}.html`;
             if (loggedIn) {
                 try {
-                    const res = await fetch(https://api.github.com/repos///contents/, {
-                        headers: { 'Authorization': 	oken  }
+                    const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/${path}`, {
+                        headers: { 'Authorization': `token ${ghToken}` }
                     });
                     if (res.ok) {
                         const data = await res.json();
@@ -548,7 +548,7 @@
                 } catch(e) {}
             }
             try {
-                const res = await fetch(docs/.html?t=);
+                const res = await fetch(`docs/${pageName}.html?t=${Date.now()}`);
                 if (res.ok) {
                     const content = await res.text();
                     return { content: content, sha: null };
