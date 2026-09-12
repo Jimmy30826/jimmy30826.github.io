@@ -642,6 +642,138 @@
         }
 
         // Edit Modes
+        
+        async function expandTemplates(text, depth = 0) {
+            if (depth > 3) return text; // Prevent infinite loops
+            
+            const templateRegex = /\[include\((.*?)\)\]/g;
+            let matches;
+            const templatesToFetch = new Set();
+            while ((matches = templateRegex.exec(text)) !== null) {
+                templatesToFetch.add(matches[1].trim());
+            }
+            
+            if (templatesToFetch.size === 0) return text;
+            
+            const templateContents = {};
+            const promises = Array.from(templatesToFetch).map(async (tpl) => {
+                let doc = await fetchDocumentRaw(tpl);
+                if (doc) {
+                    templateContents[tpl] = await expandTemplates(doc.content, depth + 1);
+                } else {
+                    templateContents[tpl] = `> **[오류]** '${tpl}' 틀을 불러올 수 없습니다.`;
+                }
+            });
+            
+            await Promise.all(promises);
+            
+            return text.replace(templateRegex, (match, p1) => {
+                return templateContents[p1.trim()];
+            });
+        }
+
+        function parseMarkdown(text) {
+            let codeBlocks = [];
+            text = text.replace(/```([\s\S]*?)```/g, (match, p1) => {
+                codeBlocks.push(`<pre><code>${p1.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`);
+                return `%%%CODEBLOCK_${codeBlocks.length - 1}%%%`;
+            });
+            text = text.replace(/`([^`]+)`/g, (match, p1) => {
+                codeBlocks.push(`<code>${p1.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>`);
+                return `%%%CODEBLOCK_${codeBlocks.length - 1}%%%`;
+            });
+
+            text = text.replace(/^(#{1,6})\s+(.*)$/gm, (match, hashes, content) => {
+                let level = hashes.length;
+                return `<h${level}>${content}</h${level}>`;
+            });
+            text = text.replace(/^>\s+(.*)$/gm, '<blockquote>$1</blockquote>');
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/_(.*?)_/g, '<em>$1</em>');
+            text = text.replace(/~~(.*?)~~/g, '<del>$1</del>');
+            text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%;">');
+            text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+            let inList = false;
+            let lines = text.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].match(/^\s*[-*]\s+(.*)$/)) {
+                    lines[i] = lines[i].replace(/^\s*[-*]\s+(.*)$/, '<li>$1</li>');
+                    if (!inList) { lines[i] = '<ul>' + lines[i]; inList = true; }
+                } else if (inList) {
+                    lines[i - 1] += '</ul>';
+                    inList = false;
+                }
+            }
+            if (inList) lines[lines.length - 1] += '</ul>';
+            text = lines.join('\n');
+
+            let inTable = false;
+            lines = text.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.startsWith('|') && line.endsWith('|')) {
+                    if (line.replace(/\s/g, '').match(/^\|[-:|]+\|$/)) {
+                        lines[i] = ''; 
+                        continue;
+                    }
+                    let cells = line.substring(1, line.length - 1).split('|').map(c => c.trim());
+                    let rowHtml = '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+                    
+                    if (!inTable) {
+                        lines[i] = '<table class="mc-table" style="border-collapse:collapse; width:auto; border:2px solid var(--mc-stone); margin-bottom: 15px;"><tbody>' + rowHtml;
+                        inTable = true;
+                    } else {
+                        lines[i] = rowHtml;
+                    }
+                } else if (inTable) {
+                    lines[i - 1] += '</tbody></table>';
+                    inTable = false;
+                }
+            }
+            if (inTable) lines[lines.length - 1] += '</tbody></table>';
+            text = lines.join('\n');
+
+            text = text.replace(/\n\n+/g, '<br><br>');
+            text = text.replace(/([^>])\n([^<])/g, '$1<br>$2');
+
+            codeBlocks.forEach((code, index) => {
+                text = text.replace(`%%%CODEBLOCK_${index}%%%`, code);
+            });
+
+            return text;
+        }
+
+        async function renderPage(content) {
+            try {
+                content = await expandTemplates(content);
+                
+                let currentCategories = [];
+                content = content.replace(/\[\[분류:(.*?)\]\]/g, (match, p1) => {
+                    currentCategories.push(p1.trim());
+                    return "";
+                });
+                
+                let html = parseMarkdown(content);
+                
+                if (currentCategories.length > 0) {
+                    let catHtml = '<div style="margin-top: 30px; padding: 10px; border: 1px solid var(--mc-stone); border-radius: 5px; background: rgba(0,0,0,0.05);">';
+                    catHtml += '<strong>분류: </strong>';
+                    catHtml += currentCategories.map(c => `<a href="?page=${encodeURIComponent(c)}" style="color:var(--mc-green); text-decoration:none;">${c}</a>`).join(' | ');
+                    catHtml += '</div>';
+                    html += catHtml;
+                }
+                
+                viewerEl.innerHTML = html;
+            } catch(e) {
+                viewerEl.innerHTML = `<div style="color:red; font-weight:bold;">렌더링 중 오류가 발생했습니다: ${e.message}</div>`;
+                console.error(e);
+            }
+        }
+
+
         function startEdit() {
             viewerEl.style.display = 'none';
             viewerActions.style.display = 'none';
