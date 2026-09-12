@@ -566,19 +566,39 @@
                     return;
                 }
 
-                // 1. Expand templates (async)
-                let expandedContent = await expandTemplates(originalContent);
                 
-                // 2. Preprocess categories, wiki links, footnotes
-                const preprocessedContent = preprocessMarkdown(expandedContent);
-                
-                // 3. Render HTML
-                viewerEl.innerHTML = redirectNotice + marked.parse(preprocessedContent);
-                
-                // 4. Post-processing (TOC, Categories, Footnotes)
-                generateTOC(viewerEl);
-                renderCategories(viewerEl);
-                renderFootnotes(viewerEl);
+            let htmlToRender = originalContent;
+            if (redirectNotice) {
+                htmlToRender = `<div style="color: #666; font-size: 0.9em; margin-bottom: 10px;">↳ ${originalPage}에서 넘어옴</div>\n\n` + htmlToRender;
+            }
+            await renderPage(htmlToRender);
+            
+            // Parent/Child rendering
+            let relHtml = '<div style="margin-bottom: 20px; font-size: 0.9em; padding: 10px; border-left: 4px solid var(--mc-green); background: rgba(0,0,0,0.03);">';
+            let hasRel = false;
+            
+            // Parent Check
+            if (currentPage.includes('/')) {
+                let parentPage = currentPage.substring(0, currentPage.lastIndexOf('/'));
+                relHtml += `<div><strong>상위 문서:</strong> <a href="?page=${encodeURIComponent(parentPage)}" style="color:var(--mc-green); text-decoration:none;">${parentPage}</a></div>`;
+                hasRel = true;
+            }
+            
+            // Child Check
+            const allDocs = await fetchAllDocuments();
+            const children = allDocs.filter(d => d.startsWith(currentPage + '/'));
+            if (children.length > 0) {
+                relHtml += `<div style="${hasRel ? 'margin-top: 5px;' : ''}"><strong>하위 문서:</strong> `;
+                relHtml += children.map(c => `<a href="?page=${encodeURIComponent(c)}" style="color:var(--mc-green); text-decoration:none;">${c.substring(currentPage.length + 1)}</a>`).join(', ');
+                relHtml += `</div>`;
+                hasRel = true;
+            }
+            relHtml += '</div>';
+            
+            if (hasRel) {
+                viewerEl.insertAdjacentHTML('afterbegin', relHtml);
+            }
+
                 
                 // 5. Re-evaluate scripts
                 const scripts = viewerEl.querySelectorAll('script');
@@ -896,12 +916,20 @@
         async function fetchAllDocuments() {
             if (allDocumentsCache !== null) return allDocumentsCache;
             try {
-                let files = [];
                 const headers = ghToken ? { 'Authorization': `token ${ghToken}` } : {};
-                const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/SWIKI/docs`, { headers });
+                // Use git/trees API for recursive fetching
+                const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/main?recursive=1`, { headers });
                 if (res.ok) {
-                    files = await res.json();
-                    allDocumentsCache = files.filter(f => f.name.endsWith('.html')).map(f => f.name.replace('.html', ''));
+                    const data = await res.json();
+                    const docs = [];
+                    data.tree.forEach(item => {
+                        if (item.type === 'blob' && item.path.startsWith(apiPath + '/') && item.path.endsWith('.html')) {
+                            let title = item.path.substring(apiPath.length + 1);
+                            title = title.substring(0, title.length - 5); // remove .html
+                            docs.push(title);
+                        }
+                    });
+                    allDocumentsCache = docs;
                     return allDocumentsCache;
                 }
             } catch(e) {}
