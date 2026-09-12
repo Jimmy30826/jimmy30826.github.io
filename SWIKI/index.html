@@ -726,7 +726,17 @@
             text = text.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%;">');
             text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
 
+
+            // Wiki Links: [[문서명]] or [[문서명|출력 텍스트]]
+            text = text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
+                let parts = p1.split('|');
+                let target = parts[0].trim();
+                let display = parts.length > 1 ? parts[1].trim() : target;
+                return `<a href="?page=${encodeURIComponent(target)}">${display}</a>`;
+            });
+
             let inList = false;
+
             let lines = text.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(/^\s*[-*]\s+(.*)$/)) {
