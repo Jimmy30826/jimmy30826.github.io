@@ -472,6 +472,8 @@
                     });
                     html += `</ul>`;
                     viewerEl.innerHTML = html;
+                if (typeof generateTOC === \'function\') generateTOC(viewerEl);
+                if (typeof renderFootnotes === \'function\') renderFootnotes(viewerEl);
                 } else {
                     viewerEl.innerHTML = `<div style="padding: 20px;"><i class="fa-solid fa-circle-info"></i> 이 분류에 속한 문서가 없습니다.</div>`;
                 }
@@ -520,6 +522,8 @@
                     });
                     html += `</ul>`;
                     viewerEl.innerHTML = html;
+                if (typeof generateTOC === \'function\') generateTOC(viewerEl);
+                if (typeof renderFootnotes === \'function\') renderFootnotes(viewerEl);
                 } else {
                     viewerEl.innerHTML = `<div style="padding: 20px;"><i class="fa-solid fa-circle-info"></i> 이 문서로 연결되는 역링크가 없습니다.</div>`;
                 }
@@ -529,6 +533,30 @@
         }
 
         // Fetch Page Content
+        
+        async function fetchDocumentRaw(pageName) {
+            const path = SWIKI/docs/.html;
+            if (loggedIn) {
+                try {
+                    const res = await fetch(https://api.github.com/repos///contents/, {
+                        headers: { 'Authorization': 	oken  }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        return { content: decodeURIComponent(escape(atob(data.content))), sha: data.sha };
+                    }
+                } catch(e) {}
+            }
+            try {
+                const res = await fetch(docs/.html?t=);
+                if (res.ok) {
+                    const content = await res.text();
+                    return { content: content, sha: null };
+                }
+            } catch(e) {}
+            return null;
+        }
+
         async function fetchPage(isRedirect = false, originalPage = null) {
             if (currentCategory) {
                 fetchCategory(currentCategory);
@@ -569,7 +597,9 @@
                 
             let htmlToRender = originalContent;
             if (redirectNotice) {
-                htmlToRender = `<div style="color: #666; font-size: 0.9em; margin-bottom: 10px;">↳ ${originalPage}에서 넘어옴</div>\n\n` + htmlToRender;
+                htmlToRender = `<div style="color: #666; font-size: 0.9em; margin-bottom: 10px;">↳ ${originalPage}에서 넘어옴</div>
+
+` + htmlToRender;
             }
             await renderPage(htmlToRender);
             
@@ -697,7 +727,8 @@
             text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
 
             let inList = false;
-            let lines = text.split('\n');
+            let lines = text.split('
+');
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].match(/^\s*[-*]\s+(.*)$/)) {
                     lines[i] = lines[i].replace(/^\s*[-*]\s+(.*)$/, '<li>$1</li>');
@@ -708,10 +739,12 @@
                 }
             }
             if (inList) lines[lines.length - 1] += '</ul>';
-            text = lines.join('\n');
+            text = lines.join('
+');
 
             let inTable = false;
-            lines = text.split('\n');
+            lines = text.split('
+');
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 if (line.startsWith('|') && line.endsWith('|')) {
@@ -734,10 +767,14 @@
                 }
             }
             if (inTable) lines[lines.length - 1] += '</tbody></table>';
-            text = lines.join('\n');
+            text = lines.join('
+');
 
-            text = text.replace(/\n\n+/g, '<br><br>');
-            text = text.replace(/([^>])\n([^<])/g, '$1<br>$2');
+            text = text.replace(/
+
++/g, '<br><br>');
+            text = text.replace(/([^>])
+([^<])/g, '$1<br>$2');
 
             codeBlocks.forEach((code, index) => {
                 text = text.replace(`%%%CODEBLOCK_${index}%%%`, code);
@@ -767,6 +804,8 @@
                 }
                 
                 viewerEl.innerHTML = html;
+                if (typeof generateTOC === 'function') generateTOC(viewerEl);
+                if (typeof renderFootnotes === 'function') renderFootnotes(viewerEl);
             } catch(e) {
                 viewerEl.innerHTML = `<div style="color:red; font-weight:bold;">렌더링 중 오류가 발생했습니다: ${e.message}</div>`;
                 console.error(e);
@@ -779,7 +818,9 @@
             viewerActions.style.display = 'none';
             editorEl.style.display = 'flex';
             editorActions.style.display = 'flex';
-            inputEl.value = originalContent || `<h1>${currentPage}</h1>\n\n`;
+            inputEl.value = originalContent || `<h1>${currentPage}</h1>
+
+`;
             document.getElementById('commit-message').value = ""; // 초기화
             
             const lastEditedEl = document.getElementById('last-edited-time');
@@ -869,7 +910,8 @@
                 const fileDiff = commitData.files.find(f => f.filename === path);
                 
                 if (fileDiff && fileDiff.patch) {
-                    const lines = fileDiff.patch.split('\n');
+                    const lines = fileDiff.patch.split('
+');
                     let diffHtml = "";
                     lines.forEach(line => {
                         let cls = "";
@@ -963,7 +1005,8 @@
                 });
 
                 if (res.ok) {
-                    alert("성공적으로 Github에 커밋되었습니다!\n(Github Pages 반영까지 1~2분 정도 소요될 수 있습니다.)");
+                    alert("성공적으로 Github에 커밋되었습니다!
+(Github Pages 반영까지 1~2분 정도 소요될 수 있습니다.)");
                     window.location.reload();
                 } else {
                     const error = await res.json();
@@ -1023,7 +1066,9 @@
                         const end = inputEl.selectionEnd;
                         const text = inputEl.value;
                         
-                        let mediaMarkdown = `\n[[파일:${fileName}]]\n`;
+                        let mediaMarkdown = `
+[[파일:${fileName}]]
+`;
                         
                         inputEl.value = text.substring(0, start) + mediaMarkdown + text.substring(end);
                         inputEl.selectionStart = inputEl.selectionEnd = start + mediaMarkdown.length;
@@ -1179,6 +1224,8 @@
                 }
                 
                 viewerEl.innerHTML = html;
+                if (typeof generateTOC === \'function\') generateTOC(viewerEl);
+                if (typeof renderFootnotes === \'function\') renderFootnotes(viewerEl);
                 
             } catch(e) {
                 viewerEl.innerHTML = `<div style="color:red; padding: 20px;"><i class="fa-solid fa-triangle-exclamation"></i> 검색 중 오류가 발생했습니다: ${e.message}</div>`;
