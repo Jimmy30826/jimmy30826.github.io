@@ -23,7 +23,7 @@ export const templatesPlugin: VertiWikiPlugin = {
   name: 'templates',
   beforeParse: async (markdown: string, context: PluginContext) => {
     if (!markdown.includes('{{')) return markdown;
-    const matches = [...markdown.matchAll(/\\{\\{\\s*([^{}\\n]+?)\\s*\\}\\}/g)];
+    const matches = [...markdown.matchAll(/\{\{\s*([^{}\n]+?)\s*\}\}/g)];
     if (!matches.length) return markdown;
     let result = markdown;
     for (const match of matches) {
