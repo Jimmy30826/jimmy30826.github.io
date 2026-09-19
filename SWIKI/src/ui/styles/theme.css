@@ -1,0 +1,233 @@
+/* Dynamic Theme System Variables */
+:root {
+  --verti-header-height: 60px;
+  --verti-sidebar-width: 280px;
+  --verti-toc-width: 240px;
+  --verti-content-max-width: 900px;
+  --verti-transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-serif: Georgia, Cambria, 'Times New Roman', serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+
+  /* VertiWiki Component Token Aliases */
+  --verti-font-sans: var(--font-sans);
+  --verti-font-mono: var(--font-mono);
+  --verti-radius-sm: var(--radius-sm);
+  --verti-radius-md: var(--radius-md);
+  --verti-radius-lg: var(--radius-lg);
+
+  --verti-bg-base: var(--background);
+  --verti-bg-surface: var(--card);
+  --verti-bg-subtle: var(--muted);
+  --verti-bg-elevated: var(--card);
+
+  --verti-text-primary: var(--foreground);
+  --verti-text-secondary: var(--muted-foreground);
+  --verti-text-muted: var(--muted-foreground);
+
+  --verti-border: var(--border);
+  --verti-border-hover: var(--accent);
+
+  --verti-accent: var(--primary);
+  --verti-accent-hover: var(--primary);
+  --verti-accent-subtle: color-mix(in srgb, var(--verti-accent) 15%, transparent);
+  --verti-accent-contrast: var(--primary-foreground);
+
+  --verti-code-bg: var(--muted);
+  --verti-code-text: var(--foreground);
+  --verti-code-border: var(--border);
+
+  --verti-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --verti-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --verti-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+  /* Callout colors */
+  --verti-note: #3b82f6;
+  --verti-note-bg: rgba(59, 130, 246, 0.1);
+  --verti-tip: #10b981;
+  --verti-tip-bg: rgba(16, 185, 129, 0.1);
+  --verti-important: #a855f7;
+  --verti-important-bg: rgba(168, 85, 247, 0.1);
+  --verti-warning: #f59e0b;
+  --verti-warning-bg: rgba(245, 158, 11, 0.1);
+  --verti-caution: #ef4444;
+  --verti-caution-bg: rgba(239, 68, 68, 0.1);
+
+
+}
+
+/* ========================================================
+   DEFAULT THEME (Modern Monochrome & Slate)
+   ======================================================== */
+:root,
+[data-theme-preset='default'] {
+  --background: #ffffff;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #18181b;
+  --accent-foreground: #fafafa;
+  --border: #e4e4e7;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+  --radius: 0.5rem;
+}
+
+[data-theme='dark'],
+[data-theme-preset='default'][data-theme='dark'] {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --card: #0f0f11;
+  --card-foreground: #f4f4f5;
+  --primary: #fafafa;
+  --primary-foreground: #09090b;
+  --secondary: #18181b;
+  --secondary-foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #fafafa;
+  --accent-foreground: #09090b;
+  --border: #27272a;
+  --sidebar: #09090b;
+  --sidebar-foreground: #f4f4f5;
+  --sidebar-border: #27272a;
+}
+
+/* ========================================================
+   HEADER NAVIGATION LINKS (Enterprise & White-Label)
+   ======================================================== */
+.verti-header-links {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-right: 0.5rem;
+}
+
+.verti-header-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--verti-text-secondary);
+  text-decoration: none;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--verti-radius-md);
+  transition: var(--verti-transition);
+}
+
+.verti-header-link:hover {
+  color: var(--verti-text-primary);
+  background: var(--verti-bg-subtle);
+}
+
+.verti-header-link-btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--verti-radius-md);
+  background: var(--verti-accent);
+  color: var(--verti-accent-contrast);
+  text-decoration: none;
+  transition: var(--verti-transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.verti-header-link-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .verti-header-links {
+    display: none;
+  }
+}
+
+/* ========================================================
+   CONTENT WIDTH ERGONOMICS (Technical & Non-Technical)
+   ======================================================== */
+/* Readable Prose Measure for books, handbooks, essays (68ch) */
+[data-content-width='readable'] .verti-article {
+  max-width: 68ch;
+  line-height: 1.8;
+  font-size: 1.05rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+[data-content-width='readable'] .verti-article-container {
+  max-width: 850px;
+}
+
+/* Full Width for extensive dashboards, wide tables, or canvas */
+[data-content-width='full'] .verti-article {
+  max-width: 100%;
+}
+
+[data-content-width='full'] .verti-article-container {
+  max-width: 100%;
+}
+
+/* ========================================================
+   LAYOUT MODES (Modular Layout Engine)
+   ======================================================== */
+/* Book / Long-form Literary & Academic Mode */
+[data-layout='book'] .verti-toc-sidebar {
+  display: none !important;
+}
+
+[data-layout='book'] .verti-article-container {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+[data-layout='book'] .verti-article {
+  font-size: 1.1rem;
+  line-height: 1.85;
+}
+
+[data-layout='book'] .verti-article-topbar {
+  border-bottom: none;
+  margin-bottom: 2rem;
+}
+
+/* Handbook / Company Manual / HR SOP Mode */
+[data-layout='handbook'] .verti-article-container {
+  max-width: 900px;
+}
+
+[data-layout='handbook'] .verti-article {
+  font-size: 1.025rem;
+  line-height: 1.75;
+}
+
+/* API Reference Split-Layout Base Hooks */
+[data-layout='api'] .verti-content-wrapper {
+  max-width: 100%;
+}
+
+@media (min-width: 1280px) {
+  [data-layout='api'] .verti-article-container {
+    max-width: 1400px;
+  }
+}
+
+/* System Dark Mode Auto Sync */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+  }
+}

@@ -1,0 +1,56 @@
+name: Build SWIKI
+
+on:
+  push:
+    branches:
+      - swiki-vertiwiki
+    paths:
+      - "SWIKI/**"
+      - ".github/workflows/build-swiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SWIKI
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Upgrade npm
+        run: npm install --global npm@11
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build VertiWiki
+        run: npm run build
+
+      - name: Replace runtime index
+        run: cp dist/vertiwiki.html index.html
+
+      - name: Commit built runtime
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SWIKI/index.html SWIKI/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+          else
+            git commit -m "build: generate SWIKI VertiWiki runtime"
+            git push
+          fi

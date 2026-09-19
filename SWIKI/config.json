@@ -1,0 +1,27 @@
+{
+  "title": "SWIKI",
+  "logo": "",
+  "favicon": "",
+  "brandDisplay": "both",
+  "useSideMenu": true,
+  "useTableOfContents": true,
+  "enableSearch": true,
+  "enableMath": true,
+  "enableMermaid": true,
+  "enableCodeCopy": true,
+  "enableThemeChooser": true,
+  "enableLanguageChooser": true,
+  "locales": [],
+  "collapsibleNavigation": true,
+  "defaultTheme": "dark",
+  "themePreset": "obsidian",
+  "navigationFile": "wiki/navigation.md",
+  "homePage": "wiki/대문.md",
+  "llmsTxtUrl": "",
+  "footerText": "SWIKI · Powered by VertiWiki",
+  "githubUrl": "https://github.com/Jimmy30826/jimmy30826.github.io",
+  "customThemes": [
+    "themes/obsidian.json",
+    "themes/onyx-ops.json"
+  ]
+}
