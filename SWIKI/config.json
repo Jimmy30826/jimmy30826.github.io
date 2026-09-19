@@ -1,7 +1,7 @@
 {
-  "title": "VertiWiki",
-  "logo": "demo/assets/logo.svg",
-  "favicon": "demo/assets/favicon.ico",
+  "title": "SWIKI",
+  "logo": "",
+  "favicon": "",
   "brandDisplay": "both",
   "useSideMenu": true,
   "useTableOfContents": true,
@@ -11,18 +11,15 @@
   "enableCodeCopy": true,
   "enableThemeChooser": true,
   "enableLanguageChooser": true,
-  "locales": [
-    { "code": "en", "label": "English", "isDefault": true },
-    { "code": "fr", "label": "Français", "prefix": "fr" }
-  ],
+  "locales": [],
   "collapsibleNavigation": true,
   "defaultTheme": "dark",
   "themePreset": "obsidian",
-  "navigationFile": "demo/navigation.md",
-  "homePage": "demo/index.md",
-  "llmsTxtUrl": "demo/llms.txt",
-  "footerText": "Powered by <a href=\"https://verti.wiki\" target=\"_blank\" rel=\"noopener noreferrer\"><strong>VertiWiki 0.10.0 (Épure)</strong></a> — Built for 2026 and beyond",
-  "githubUrl": "https://github.com/Octadira/vertiwiki",
+  "navigationFile": "wiki/navigation.md",
+  "homePage": "wiki/대문.md",
+  "llmsTxtUrl": "",
+  "footerText": "SWIKI · Powered by VertiWiki",
+  "githubUrl": "https://github.com/Jimmy30826/jimmy30826.github.io",
   "customThemes": [
     "themes/obsidian.json",
     "themes/onyx-ops.json"
