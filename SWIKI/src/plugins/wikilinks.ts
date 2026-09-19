@@ -13,13 +13,20 @@ import { VertiWikiPlugin, PluginContext } from '../core/pipeline';
  * Automatically isolates fenced code blocks and inline backtick code so that
  * literal `[[...]]` written within code examples are left untouched.
  */
-function computeRelativePath(fromFilePath: string, targetPath: string, configuredLocales?: string[]): string {
+function computeRelativePath(fromFilePath: string, targetPath: string, configuredLocales?: string[], wikiRoot: string = ''): string {
   if (targetPath.startsWith('/') || targetPath.startsWith('http://') || targetPath.startsWith('https://')) {
     return targetPath;
   }
 
   const cleanFrom = fromFilePath.replace(/\\/g, '/').replace(/^\/+/, '');
   const cleanTarget = targetPath.replace(/\\/g, '/').replace(/^\/+/, '');
+
+  // Wikilinks are wiki-root relative, while transformLinks() later resolves
+  // ordinary Markdown links relative to the current file. Prefix the wiki
+  // root here so the two stages do not resolve the path twice.
+  if (wikiRoot && !cleanTarget.startsWith(`${wikiRoot}/`) && cleanTarget !== wikiRoot) {
+    return `${wikiRoot}/${cleanTarget}`;
+  }
 
   const fromSegments = cleanFrom.split('/');
   fromSegments.pop(); // remove filename, keep directory
@@ -92,7 +99,11 @@ export const wikilinksPlugin: VertiWikiPlugin = {
       // Compute relative path if context.filePath is available
       if (context && context.filePath) {
         const configuredLocales = context.config?.locales?.map(l => l.prefix || l.code).filter(Boolean) as string[] | undefined;
-        targetFile = computeRelativePath(context.filePath, targetFile, configuredLocales);
+        const homePage = context.config?.homePage || '';
+        const wikiRoot = homePage.includes('/') ? homePage.substring(0, homePage.lastIndexOf('/')) : '';
+        targetFile = wikiRoot
+          ? computeRelativePath(context.filePath, targetFile, configuredLocales, wikiRoot)
+          : computeRelativePath(context.filePath, targetFile, configuredLocales);
       }
 
       // Determine display label
