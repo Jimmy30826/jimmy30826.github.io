@@ -1952,3 +1952,202 @@ body {
     padding: 1rem 0.6rem;
   }
 }
+
+
+/* ==========================================================================
+   SWIKI Template Editor
+   ========================================================================== */
+
+.swiki-template-editor {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.swiki-template-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.swiki-template-kicker {
+  margin: 0 0 0.35rem;
+  color: var(--verti-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.swiki-template-description {
+  color: var(--verti-text-secondary);
+}
+
+.swiki-template-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.swiki-template-list,
+.swiki-template-main {
+  background: var(--verti-bg-surface);
+  border: 1px solid var(--verti-border);
+  border-radius: var(--verti-radius-md);
+}
+
+.swiki-template-list {
+  padding: 0.75rem;
+  align-self: start;
+}
+
+.swiki-template-list-title {
+  padding: 0.4rem 0.5rem 0.7rem;
+  color: var(--verti-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.swiki-template-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.swiki-template-item {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 0;
+  border-radius: var(--verti-radius-sm);
+  background: transparent;
+  color: var(--verti-text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.swiki-template-item:hover,
+.swiki-template-item.active {
+  background: color-mix(in srgb, var(--verti-accent) 12%, transparent);
+  color: var(--verti-accent);
+}
+
+.swiki-template-empty {
+  padding: 0.75rem 0.5rem;
+  color: var(--verti-text-muted);
+  font-size: 0.85rem;
+}
+
+.swiki-template-main {
+  padding: 1.25rem;
+}
+
+.swiki-template-label {
+  display: block;
+  margin: 0.75rem 0 0.4rem;
+  color: var(--verti-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.swiki-template-name,
+.swiki-template-source,
+.swiki-template-token {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--verti-border);
+  border-radius: var(--verti-radius-sm);
+  background: var(--verti-bg);
+  color: var(--verti-text-primary);
+}
+
+.swiki-template-name,
+.swiki-template-token {
+  padding: 0.65rem 0.75rem;
+}
+
+.swiki-template-source {
+  min-height: 430px;
+  padding: 0.85rem;
+  resize: vertical;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.swiki-template-name:focus,
+.swiki-template-source:focus,
+.swiki-template-token:focus {
+  outline: 2px solid color-mix(in srgb, var(--verti-accent) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.swiki-template-help {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--verti-border);
+  border-radius: var(--verti-radius-sm);
+  color: var(--verti-text-secondary);
+  font-size: 0.85rem;
+}
+
+.swiki-template-help code {
+  margin: 0 0.2rem;
+}
+
+.swiki-template-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.swiki-template-status {
+  color: var(--verti-text-muted);
+  font-size: 0.82rem;
+}
+
+.swiki-template-status.error {
+  color: var(--verti-danger, #ef4444);
+}
+
+.swiki-template-auth {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--verti-border);
+  color: var(--verti-text-secondary);
+  font-size: 0.82rem;
+}
+
+.swiki-template-auth p {
+  color: var(--verti-text-muted);
+}
+
+.swiki-template-auth .swiki-template-token {
+  margin: 0.5rem 0;
+}
+
+@media (max-width: 760px) {
+  .swiki-template-editor-head {
+    flex-direction: column;
+  }
+
+  .swiki-template-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .swiki-template-list {
+    order: 2;
+  }
+
+  .swiki-template-main {
+    order: 1;
+  }
+
+  .swiki-template-source {
+    min-height: 320px;
+  }
+}
