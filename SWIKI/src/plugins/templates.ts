@@ -1,4 +1,5 @@
 import { VertiWikiPlugin, PluginContext } from '../core/pipeline';
+import { resolveResourceUrl } from '../core/router';
 
 const cache = new Map<string, string>();
 
@@ -33,8 +34,11 @@ export const templatesPlugin: VertiWikiPlugin = {
       let source = cache.get(templatePath);
       if (!source) {
         try {
-          const response = await fetch(new URL(templatePath, window.location.href), { headers: { 'Accept': 'text/markdown, text/plain, */*' } });
-          if (!response.ok) continue;
+          const response = await fetch(resolveResourceUrl(templatePath), { headers: { 'Accept': 'text/markdown, text/plain, */*' } });
+          if (!response.ok) {
+            console.warn(`[Template] Failed to load ${templatePath}: ${response.status}`);
+            continue;
+          }
           source = await response.text();
           cache.set(templatePath, source);
         } catch { continue; }
