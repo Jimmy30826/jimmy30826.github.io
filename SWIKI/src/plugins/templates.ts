@@ -16,7 +16,7 @@ function parseArguments(raw: string): { name: string; args: Record<string, strin
 }
 
 function renderTemplate(source: string, args: Record<string, string>): string {
-  return source.replace(/\\{\\{\\{\\s*([^}]+?)\\s*\\}\\}\\}/g, (_, key) => args[key.trim()] ?? '');
+  return source.replace(/\{\{\{\s*([^}]+?)\s*\}\}\}/g, (_, key) => args[key.trim()] ?? '');
 }
 
 export const templatesPlugin: VertiWikiPlugin = {
