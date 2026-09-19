@@ -31,6 +31,7 @@ import { wikilinksPlugin } from './plugins/wikilinks';
 import { templatesPlugin } from './plugins/templates';
 import { PrevNextNavigation } from './ui/prev-next';
 import { resolveFavicon, applyFavicon } from './core/favicon';
+import { renderTemplateEditor } from './ui/template-editor';
 
 async function bootstrap() {
   // Normalize URL if opened without trailing slash on a directory path (e.g. /docs#/ -> /docs/#/)
@@ -260,6 +261,22 @@ ${currentRawMarkdown}`;
   // Main Page Loader
   async function loadPage(route: RouteInfo): Promise<void> {
     let filePath = route.filePath;
+
+    // Virtual wiki namespace: 템플릿:이름
+    // These pages are managed by the built-in GitHub-backed template editor.
+    if (filePath.startsWith('템플릿:')) {
+      const templateName = filePath.substring('템플릿:'.length).replace(/\.md$/i, '');
+      layout.contentArticle.innerHTML = '';
+      await renderTemplateEditor(
+        layout.contentArticle,
+        config,
+        templateName,
+        (path) => router.navigate(path)
+      );
+      document.title = templateName ? `템플릿:${templateName} — ${config.title}` : `템플릿 관리 — ${config.title}`;
+      layout.updateBreadcrumbs(filePath, templateName ? `템플릿: ${templateName}` : '템플릿 관리');
+      return;
+    }
     const activeLocale = route.locale || router.getCurrentLocale(filePath);
 
     // Parallelize navigation loading and markdown fetching for instant perceived speed
