@@ -23,29 +23,41 @@ function renderTemplate(source: string, args: Record<string, string>): string {
 export const templatesPlugin: VertiWikiPlugin = {
   name: 'templates',
   beforeParse: async (markdown: string, context: PluginContext) => {
-    if (!markdown.includes('{{')) return markdown;
+    // Template calls use MediaWiki-style syntax: {{역정보|이름=서울역}}
     const matches = [...markdown.matchAll(/\{\{\s*([^{}\n]+?)\s*\}\}/g)];
     if (!matches.length) return markdown;
+
     let result = markdown;
+
     for (const match of matches) {
       const { name, args } = parseArguments(match[1].trim());
       if (!name || name.includes('/') || name.includes('\\\\')) continue;
+
       const templatePath = `templates/${name}.md`;
       let source = cache.get(templatePath);
-      if (!source) {
-        try {
-          const response = await fetch(resolveResourceUrl(templatePath), { headers: { 'Accept': 'text/markdown, text/plain, */*' } });
+
+      try {
+        if (!source) {
+          const url = resolveResourceUrl(templatePath);
+          const response = await fetch(url, {
+            headers: { 'Accept': 'text/markdown, text/plain, */*' }
+          });
           if (!response.ok) {
-            console.warn(`[Template] Failed to load ${templatePath}: ${response.status}`);
+            console.warn(`[Template] Failed to load ${templatePath}: ${response.status} ${response.statusText}`);
             continue;
           }
           source = await response.text();
           cache.set(templatePath, source);
-        } catch { continue; }
+        }
+
+        // Strip optional YAML frontmatter from the template document.
+        source = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+        result = result.replace(match[0], renderTemplate(source, args));
+      } catch (error) {
+        console.warn(`[Template] Error loading ${templatePath}:`, error);
       }
-      source = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
-      result = result.replace(match[0], renderTemplate(source, args));
     }
+
     return result;
   }
 };
