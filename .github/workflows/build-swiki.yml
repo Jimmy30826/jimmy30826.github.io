@@ -30,8 +30,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Upgrade npm
+        run: npm install --global npm@11
+
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Build VertiWiki
         run: npm run build
