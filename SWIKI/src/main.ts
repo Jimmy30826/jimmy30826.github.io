@@ -28,6 +28,7 @@ import { lightboxPlugin } from './plugins/lightbox';
 import { navAccordionPlugin } from './plugins/nav-accordion';
 import { sitemapPlugin, parseNavigationMarkdown } from './plugins/sitemap';
 import { wikilinksPlugin } from './plugins/wikilinks';
+import { templatesPlugin } from './plugins/templates';
 import { PrevNextNavigation } from './ui/prev-next';
 import { resolveFavicon, applyFavicon } from './core/favicon';
 
@@ -89,6 +90,7 @@ ${currentRawMarkdown}`;
   pipeline.registerPlugin(navAccordionPlugin);
   pipeline.registerPlugin(sitemapPlugin);
   pipeline.registerPlugin(wikilinksPlugin);
+  pipeline.registerPlugin(templatesPlugin);
 
   // Setup Previous / Next Page Navigation
   const prevNextNav = new PrevNextNavigation(layout.contentArticle.parentElement!);
