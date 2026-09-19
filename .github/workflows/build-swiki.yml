@@ -1,4 +1,5 @@
 name: Build SWIKI
+# Rebuild using the clean source template before Vite parses index.html.
 
 on:
   push:
