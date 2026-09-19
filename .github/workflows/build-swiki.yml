@@ -44,6 +44,11 @@ jobs:
       - name: Build VertiWiki
         run: npm run build
 
+      - name: Verify template plugin is bundled
+        run: |
+          grep -q "Template] Failed to load" dist/vertiwiki.html
+          echo "Template plugin bundled successfully."
+
       - name: Replace runtime index
         run: cp dist/vertiwiki.html index.html
 
