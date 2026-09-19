@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - swiki-vertiwiki
+      - main
     paths:
       - "SWIKI/**"
       - ".github/workflows/build-swiki.yml"
