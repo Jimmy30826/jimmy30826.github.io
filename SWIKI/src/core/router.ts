@@ -218,6 +218,9 @@ export class Router {
 
     if (!filePath || filePath === '/' || filePath === '') {
       filePath = this.defaultPage;
+    } else if (filePath.startsWith('템플릿:')) {
+      // Virtual wiki document namespace. Do not append /index.md.
+      filePath = filePath;
     } else if (isExplicitDir) {
       // Explicit directory path (e.g. #/docs/sub-docs/) -> docs/sub-docs/index.md
       filePath = `${filePath}/index.md`;
@@ -312,6 +315,12 @@ export class Router {
       }
 
       if (rawHref.startsWith('#!') || rawHref.startsWith('#/')) {
+        return;
+      }
+
+      // Virtual template documents use the 템플릿: namespace.
+      if (rawHref.startsWith('템플릿:')) {
+        a.setAttribute('href', `#/${rawHref}`);
         return;
       }
 
