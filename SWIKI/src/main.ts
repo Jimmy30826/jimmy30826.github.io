@@ -89,8 +89,8 @@ ${currentRawMarkdown}`;
   pipeline.registerPlugin(lightboxPlugin);
   pipeline.registerPlugin(navAccordionPlugin);
   pipeline.registerPlugin(sitemapPlugin);
-  pipeline.registerPlugin(wikilinksPlugin);
   pipeline.registerPlugin(templatesPlugin);
+  pipeline.registerPlugin(wikilinksPlugin);
 
   // Setup Previous / Next Page Navigation
   const prevNextNav = new PrevNextNavigation(layout.contentArticle.parentElement!);
