@@ -43,7 +43,7 @@ export const templatesPlugin: VertiWikiPlugin = {
           cache.set(templatePath, source);
         } catch { continue; }
       }
-      source = source.replace(/^---\\r?\\n[\\s\\S]*?\\r?\\n---\\r?\\n/, '');
+      source = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
       result = result.replace(match[0], renderTemplate(source, args));
     }
     return result;
