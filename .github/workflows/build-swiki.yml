@@ -34,6 +34,9 @@ jobs:
       - name: Upgrade npm
         run: npm install --global npm@11
 
+      - name: Restore Vite source index
+        run: cp index.template.html index.html
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
