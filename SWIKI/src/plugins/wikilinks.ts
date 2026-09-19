@@ -90,14 +90,16 @@ export const wikilinksPlugin: VertiWikiPlugin = {
       const anchor = rawAnchor ? rawAnchor.trim() : '';
       const label = rawLabel ? rawLabel.trim() : '';
 
-      // Determine clean target path with .md extension if omitted
+      // The 템플릿: namespace is a virtual wiki document and must not be
+      // converted into a physical wiki/*.md path.
+      const isTemplateDocument = target.startsWith('템플릿:');
       let targetFile = target;
-      if (!targetFile.match(/\.(md|markdown|mdown)$/i) && !targetFile.includes('?') && !targetFile.startsWith('http://') && !targetFile.startsWith('https://')) {
+      if (!isTemplateDocument && !targetFile.match(/\.(md|markdown|mdown)$/i) && !targetFile.includes('?') && !targetFile.startsWith('http://') && !targetFile.startsWith('https://')) {
         targetFile = `${targetFile}.md`;
       }
 
       // Compute relative path if context.filePath is available
-      if (context && context.filePath) {
+      if (context && context.filePath && !isTemplateDocument) {
         const configuredLocales = context.config?.locales?.map(l => l.prefix || l.code).filter(Boolean) as string[] | undefined;
         const homePage = context.config?.homePage || '';
         const wikiRoot = homePage.includes('/') ? homePage.substring(0, homePage.lastIndexOf('/')) : '';
