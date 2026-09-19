@@ -1,0 +1,30 @@
+{
+  "title": "VertiWiki",
+  "logo": "demo/assets/logo.svg",
+  "favicon": "demo/assets/favicon.ico",
+  "brandDisplay": "both",
+  "useSideMenu": true,
+  "useTableOfContents": true,
+  "enableSearch": true,
+  "enableMath": true,
+  "enableMermaid": true,
+  "enableCodeCopy": true,
+  "enableThemeChooser": true,
+  "enableLanguageChooser": true,
+  "locales": [
+    { "code": "en", "label": "English", "isDefault": true },
+    { "code": "fr", "label": "Français", "prefix": "fr" }
+  ],
+  "collapsibleNavigation": true,
+  "defaultTheme": "dark",
+  "themePreset": "obsidian",
+  "navigationFile": "demo/navigation.md",
+  "homePage": "demo/index.md",
+  "llmsTxtUrl": "demo/llms.txt",
+  "footerText": "Powered by <a href=\"https://verti.wiki\" target=\"_blank\" rel=\"noopener noreferrer\"><strong>VertiWiki 0.10.0 (Épure)</strong></a> — Built for 2026 and beyond",
+  "githubUrl": "https://github.com/Octadira/vertiwiki",
+  "customThemes": [
+    "themes/obsidian.json",
+    "themes/onyx-ops.json"
+  ]
+}
