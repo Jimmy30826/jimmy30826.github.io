@@ -1,5 +1,5 @@
 {
-    "last_synced": "2026-11-08 03:58:26",
+    "last_synced": "2026-11-08 21:35:46",
     "sync_interval_hours": 6,
     "total_count": 9,
     "data": {
@@ -71,13 +71,7 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "-1"
-                        ],
+                        "translate": "translation.test.args",
                         "hover_event": {
                             "value": [
                                 {
@@ -87,7 +81,13 @@
                             ],
                             "action": "show_text"
                         },
-                        "translate": "translation.test.args"
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "-1"
+                        ]
                     },
                     "floor_number": "-1",
                     "has_door": 1
@@ -109,14 +109,14 @@
                     },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
                                 "fallback": "Floor",
                                 "translate": "customizable_elevators.floor"
                             },
                             "1"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "1",
                     "has_door": 1
@@ -569,7 +569,13 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "translate": "translation.test.args",
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "-2"
+                        ],
                         "hover_event": {
                             "value": [
                                 {
@@ -581,13 +587,7 @@
                             ],
                             "action": "show_text"
                         },
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "-2"
-                        ]
+                        "translate": "translation.test.args"
                     },
                     "floor_number": "-2",
                     "has_door": 1
@@ -610,7 +610,13 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "translate": "translation.test.args",
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "-1"
+                        ],
                         "hover_event": {
                             "value": [
                                 {
@@ -620,13 +626,7 @@
                             ],
                             "action": "show_text"
                         },
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "-1"
-                        ]
+                        "translate": "translation.test.args"
                     },
                     "floor_number": "-1",
                     "has_door": 1
@@ -649,7 +649,13 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "translate": "translation.test.args",
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "1"
+                        ],
                         "hover_event": {
                             "value": [
                                 {
@@ -659,13 +665,7 @@
                             ],
                             "action": "show_text"
                         },
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "1"
-                        ]
+                        "translate": "translation.test.args"
                     },
                     "floor_number": "1",
                     "has_door": 1
@@ -1006,14 +1006,14 @@
                     "has_call_button": 1,
                     "raw_name": {
                         "color": "white",
-                        "translate": "translation.test.args",
                         "with": [
                             {
                                 "fallback": "Floor",
                                 "translate": "customizable_elevators.floor"
                             },
                             "1"
-                        ]
+                        ],
+                        "translate": "translation.test.args"
                     },
                     "floor_number": "1",
                     "has_door": 1,
@@ -1028,14 +1028,14 @@
                     "has_call_button": 1,
                     "raw_name": {
                         "color": "white",
-                        "translate": "translation.test.args",
                         "with": [
                             {
                                 "fallback": "Floor",
                                 "translate": "customizable_elevators.floor"
                             },
                             "2"
-                        ]
+                        ],
+                        "translate": "translation.test.args"
                     },
                     "floor_number": "2",
                     "has_door": 1,
@@ -1118,13 +1118,7 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "1"
-                        ],
+                        "translate": "translation.test.args",
                         "hover_event": {
                             "value": [
                                 {
@@ -1134,7 +1128,13 @@
                             ],
                             "action": "show_text"
                         },
-                        "translate": "translation.test.args"
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "1"
+                        ]
                     },
                     "floor_number": "1",
                     "has_door": 1
@@ -1157,13 +1157,7 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "-1"
-                        ],
+                        "translate": "translation.test.args",
                         "hover_event": {
                             "value": [
                                 {
@@ -1173,7 +1167,13 @@
                             ],
                             "action": "show_text"
                         },
-                        "translate": "translation.test.args"
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "-1"
+                        ]
                     },
                     "floor_number": "-1",
                     "has_door": 1
@@ -1432,14 +1432,14 @@
                     },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
                                 "fallback": "Floor",
                                 "translate": "customizable_elevators.floor"
                             },
                             "-1"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "-1",
                     "has_door": 1
@@ -1461,14 +1461,14 @@
                     },
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
                                 "fallback": "Floor",
                                 "translate": "customizable_elevators.floor"
                             },
                             "1"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "1",
                     "has_door": 1
