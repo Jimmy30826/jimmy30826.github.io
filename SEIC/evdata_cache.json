@@ -1,5 +1,5 @@
 {
-    "last_synced": "2026-11-21 14:02:51",
+    "last_synced": "2026-11-21 22:41:34",
     "sync_interval_hours": 6,
     "total_count": 10,
     "data": {
@@ -481,13 +481,7 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "-2"
-                        ],
+                        "translate": "translation.test.args",
                         "hover_event": {
                             "value": [
                                 {
@@ -499,7 +493,13 @@
                             ],
                             "action": "show_text"
                         },
-                        "translate": "translation.test.args"
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "-2"
+                        ]
                     },
                     "floor_number": "-2",
                     "has_door": 1
@@ -522,13 +522,7 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "-1"
-                        ],
+                        "translate": "translation.test.args",
                         "hover_event": {
                             "value": [
                                 {
@@ -538,7 +532,13 @@
                             ],
                             "action": "show_text"
                         },
-                        "translate": "translation.test.args"
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "-1"
+                        ]
                     },
                     "floor_number": "-1",
                     "has_door": 1
@@ -561,13 +561,7 @@
                     },
                     "raw_name": {
                         "color": "white",
-                        "with": [
-                            {
-                                "fallback": "Floor",
-                                "translate": "customizable_elevators.floor"
-                            },
-                            "1"
-                        ],
+                        "translate": "translation.test.args",
                         "hover_event": {
                             "value": [
                                 {
@@ -577,7 +571,13 @@
                             ],
                             "action": "show_text"
                         },
-                        "translate": "translation.test.args"
+                        "with": [
+                            {
+                                "fallback": "Floor",
+                                "translate": "customizable_elevators.floor"
+                            },
+                            "1"
+                        ]
                     },
                     "floor_number": "1",
                     "has_door": 1
@@ -1450,14 +1450,14 @@
                     "has_call_button": 1,
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
                                 "fallback": "Floor",
                                 "translate": "customizable_elevators.floor"
                             },
                             "1"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "1",
                     "has_door": 1,
@@ -1472,14 +1472,14 @@
                     "has_call_button": 1,
                     "raw_name": {
                         "color": "white",
+                        "translate": "translation.test.args",
                         "with": [
                             {
                                 "fallback": "Floor",
                                 "translate": "customizable_elevators.floor"
                             },
                             "2"
-                        ],
-                        "translate": "translation.test.args"
+                        ]
                     },
                     "floor_number": "2",
                     "has_door": 1,
@@ -1922,16 +1922,16 @@
             "serial": "00088-10011-01"
         },
         "serial": [
-            "00034-10011-01",
-            "10165-10036-99",
-            "10014-10009-01",
+            "10159-10048-01",
             "10131-00316-01",
+            "10165-10036-99",
+            "10165-10036-99",
+            "00034-10011-01",
             "10146-10073-01",
             "10151-00026-01",
-            "10159-10048-01",
             "00088-10011-01",
-            "10165-10036-99",
-            "00182-10526-01"
+            "00182-10526-01",
+            "10014-10009-01"
         ]
     }
 }
